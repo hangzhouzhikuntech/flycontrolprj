@@ -126,6 +126,12 @@
 #include "esc_calibration.h"
 #include "PreflightCheck.h"
 
+#include "qiaoliang/qiaoliang_define.h"
+
+#if __DAVID_DISTANCE__
+#include <uORB/topics/distance_sensor.h>
+#endif/*__DAVID_DISTANCE__*/
+
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
 # undef ERROR
@@ -1172,7 +1178,9 @@ int commander_thread_main(int argc, char *argv[])
 	status.circuit_breaker_engaged_enginefailure_check = false;
 	status.circuit_breaker_engaged_gpsfailure_check = false;
 	get_circuit_breaker_params();
-
+#if __DAVID_DISTANCE__
+	status.distance_sensor_ok = false;
+#endif/*__DAVID_DISTANCE__*/
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
@@ -1357,7 +1365,11 @@ int commander_thread_main(int argc, char *argv[])
 	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	struct actuator_controls_s actuator_controls;
 	memset(&actuator_controls, 0, sizeof(actuator_controls));
-
+#if __DAVID_DISTANCE__
+	int distance_sensor_sub = orb_subscribe(ORB_ID(distance_sensor));
+	struct distance_sensor_s  distance_sensor_rece;
+	memset(&distance_sensor_rece, 0, sizeof(distance_sensor_rece));
+#endif/*__DAVID_DISTANCE__*/
 	/* Subscribe to vtol vehicle status topic */
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
 	//struct vtol_vehicle_status_s vtol_status;
@@ -2053,6 +2065,27 @@ int commander_thread_main(int argc, char *argv[])
 				}
 			}
 		}
+#if __DAVID_DISTANCE__
+
+			
+		orb_check(distance_sensor_sub, &updated);
+		if(updated){
+			orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &distance_sensor_rece);
+			//if(distance_sensor_rece.id==2){
+			//	printf("distance_sensor_rece.current_distance %.2f \n",(double)distance_sensor_rece.current_distance);
+			//}
+			if(armed.armed && distance_sensor_rece.id==2 &&distance_sensor_rece.current_distance<2.0f && distance_sensor_rece.current_distance>0.3f)
+			{
+			
+			//	printf("distance_sensor_ok \n");
+				status.distance_sensor_ok = true;
+			}
+		}
+		if(!armed.armed){
+			status.distance_sensor_ok = false;
+		}
+	
+#endif/*__DAVID_DISTANCE__*/
 
 		/* start geofence result check */
 		orb_check(geofence_result_sub, &updated);
@@ -2971,9 +3004,23 @@ set_control_mode()
 	control_mode.flag_external_manual_override_ok = (!status.is_rotary_wing && !status.is_vtol);
 	control_mode.flag_system_hil_enabled = status.hil_state == vehicle_status_s::HIL_STATE_ON;
 	control_mode.flag_control_offboard_enabled = false;
+#if __DAVID_DISTANCE__
+	control_mode.flag_sonic_sensor				= false;
+#endif/*__DAVID_DISTANCE__*/
 
 	switch (status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+#if __DAVID_MANUAL__		
+		control_mode.flag_control_manual_enabled = true;
+		control_mode.flag_control_auto_enabled = false;
+		control_mode.flag_control_rates_enabled = stabilization_required();
+		control_mode.flag_control_attitude_enabled = stabilization_required();
+		control_mode.flag_control_altitude_enabled = true;
+		control_mode.flag_control_climb_rate_enabled = true;
+		control_mode.flag_control_position_enabled = false;
+		control_mode.flag_control_velocity_enabled = false;
+		control_mode.flag_control_termination_enabled = false;
+#else
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = stabilization_required();
@@ -2983,6 +3030,7 @@ set_control_mode()
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
+#endif/*__DAVID_MANUAL__*/
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
@@ -3021,6 +3069,9 @@ set_control_mode()
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
+#if __DAVID_DISTANCE__
+		control_mode.flag_sonic_sensor				= true;
+#endif/*__DAVID_DISTANCE__*/		
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:

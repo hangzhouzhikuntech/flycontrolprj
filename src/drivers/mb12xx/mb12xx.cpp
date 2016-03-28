@@ -76,7 +76,7 @@
 
 /* Configuration Constants */
 #define MB12XX_BUS 		PX4_I2C_BUS_EXPANSION
-#define MB12XX_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
+#define MB12XX_BASEADDR 	0x74 /* 7-bit address. 8-bit address is 0xE0 */
 #define MB12XX_DEVICE_PATH	"/dev/mb12xx"
 
 /* MB12xx Registers addresses */
@@ -91,7 +91,16 @@
 
 #define MB12XX_CONVERSION_INTERVAL 	100000 /* 60ms for one sonar */
 #define TICKS_BETWEEN_SUCCESIVE_FIRES 	100000 /* 30ms between each sonar measurement (watch out for interference!) */
+#define SENSOR_POINT_FRONT  (0)
+#define SENSOR_POINT_BACK  (1)
+#define SENSOR_POINT_LEFT  (2)
+#define SENSOR_POINT_RIGHT  (3)
 
+static const uint8_t g_slave_addr[MB12XX_MAX_RANGEFINDERS] = {0x74,0x68,0x69,0x6A};
+static const uint8_t g_id_addr_map[MB12XX_MAX_RANGEFINDERS][MB12XX_MAX_RANGEFINDERS] =
+{
+    {SENSOR_POINT_FRONT,0x74},{SENSOR_POINT_BACK,0x68},{SENSOR_POINT_LEFT,0x69},{SENSOR_POINT_RIGHT,0x6a}
+};
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -113,7 +122,7 @@ public:
 
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
-
+    int change_address(uint8_t newaddr);
 	/**
 	* Diagnostics - print some basic information about the driver.
 	*/
@@ -168,7 +177,7 @@ private:
 	* Stop the automatic measurement state machine.
 	*/
 	void				stop();
-
+    int8_t getIdByAddr(uint16_t addr);
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
 	* range to be brought in at all, otherwise it will use the defaults MB12XX_MIN_DISTANCE
@@ -194,7 +203,7 @@ private:
 	*/
 	static void			cycle_trampoline(void *arg);
 
-
+    int close_scl_low();
 };
 
 /*
@@ -252,9 +261,16 @@ int
 MB12XX::init()
 {
 	int ret = ERROR;
+    uint8_t i = 0;
 
 	/* do I2C init (and probe) first */
-	if (I2C::init() != OK) {
+    for (i = 0; i < 3;i++)
+    {
+        I2C::set_bus_clock(i,0);
+    }
+
+    if (I2C::init() != OK) {
+        printf("I2C init failed\r\n");
 		return ret;
 	}
 
@@ -286,12 +302,14 @@ MB12XX::init()
 	/* check for connected rangefinders on each i2c port:
 	   We start from i2c base address (0x70 = 112) and count downwards
 	   So second iteration it uses i2c address 111, third iteration 110 and so on*/
-	for (unsigned counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
-		_index_counter = MB12XX_BASEADDR - counter;	/* set temp sonar i2c address to base adress - counter */
+    for (unsigned counter = 0; counter < MB12XX_MAX_RANGEFINDERS; counter++) {
+        _index_counter = g_slave_addr[counter];	/* set temp sonar i2c address to base adress - counter */
+        //_index_counter = MB12XX_BASEADDR;
 		set_address(_index_counter);			/* set I2c port to temp sonar i2c adress */
-		int ret2 = measure();
-
-		if (ret2 == 0) { /* sonar is present -> store address_index in array */
+        int ret2 = close_scl_low();
+        //int ret2 = probe();
+        //ret2 = change_address(0xd4);
+        if (ret2 == 0) { /* sonar is present -> store address_index in array */
 			addr_ind.push_back(_index_counter);
 			DEVICE_DEBUG("sonar added");
 			_latest_sonar_measurements.push_back(200);
@@ -326,7 +344,27 @@ MB12XX::init()
 int
 MB12XX::probe()
 {
-	return measure();
+    //printf("MB12xx probe addr is %d\r\n",get_address());
+    //return measure();
+    /*uint8_t ret;
+    uint8_t val = 0;
+    uint8_t cmd = 2;
+    //setaddress(get_address());
+
+    ret = transfer(&cmd, 1, &val, 1);
+    //ret = writebuf(cmd,3);
+    if (OK != ret) {
+        perf_count(_comms_errors);
+        DEVICE_DEBUG("i2c::transfer returned %d", ret);
+        return ret;
+    }
+    printf("probe val = %x\r\n",val);
+
+
+    ret = OK;
+
+    return ret;*/
+    return OK;
 }
 
 void
@@ -352,7 +390,74 @@ MB12XX::get_maximum_distance()
 {
 	return _max_distance;
 }
+int
+MB12XX::change_address(uint8_t newaddr)
+{
+    uint8_t cmd[2] = {0,0};
+    uint8_t ret  = -1;
+    cmd[0] = 0x02;
+    cmd[1] = 0x9a;
+    ret = transfer(&cmd[0],2,nullptr,0);             //默认原地址是0x00;
+    if (OK != ret) {
+        perf_count(_comms_errors);
+        DEVICE_DEBUG("i2c::transfer returned %d", ret);
+        return ret;
+    }
+    usleep(10000);
 
+    cmd[0] = 0x02;
+    cmd[1] = 0x92;
+    ret = transfer(&cmd[0],2,nullptr,0);             //默认原地址是0x00;
+    if (OK != ret) {
+        perf_count(_comms_errors);
+        DEVICE_DEBUG("i2c::transfer returned %d", ret);
+        return ret;
+    }
+    usleep(10000);
+
+    cmd[0] = 0x02;
+    cmd[1] = 0x9e;
+    ret = transfer(&cmd[0],2,nullptr,0);
+    if (OK != ret) {
+        perf_count(_comms_errors);
+        DEVICE_DEBUG("i2c::transfer returned %d", ret);
+        return ret;
+    }
+    usleep(10000);
+
+    cmd[0] = 0x02;
+    cmd[1] = newaddr;
+    ret = transfer(&cmd[0],2,nullptr,0);
+    if (OK != ret) {
+        perf_count(_comms_errors);
+        DEVICE_DEBUG("i2c::transfer returned %d", ret);
+        return ret;
+    }
+    usleep(500000);
+
+    return ret;
+}
+int
+MB12XX::close_scl_low()
+{
+
+    uint8_t ret = 0;
+    uint8_t cmd[2] = {2,0xc3};
+
+
+    ret = transfer(&cmd[0], 2,nullptr, 0);
+    //ret = writebuf(cmd,3);
+    if (OK != ret) {
+        perf_count(_comms_errors);
+        DEVICE_DEBUG("i2c::transfer returned %d", ret);
+        return ret;
+    }
+
+
+
+    ret = OK;
+    return ret;
+}
 int
 MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
@@ -528,7 +633,20 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 
 	return ret;
 }
+int8_t
+MB12XX::getIdByAddr(uint16_t addr)
+{
+    uint8_t i = 0;
+    for (i = 0;i < MB12XX_MAX_RANGEFINDERS;i++)
+    {
+        if ((uint8_t)addr == g_id_addr_map[i][1])
+        {
+            return g_id_addr_map[i][0];
+        }
+    }
 
+    return 0xff;
+}
 int
 MB12XX::measure()
 {
@@ -538,11 +656,10 @@ MB12XX::measure()
 	/*
 	 * Send the command to begin a measurement.
 	 */
+    uint8_t cmd[2] = {0x02,0xb4};
 
-	uint8_t cmd = MB12XX_TAKE_RANGE_REG;
-	ret = transfer(&cmd, 1, nullptr, 0);
-
-	if (OK != ret) {
+    ret = transfer(&cmd[0], 2, nullptr, 0);
+    if (OK != ret) {
 		perf_count(_comms_errors);
 		DEVICE_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
@@ -560,20 +677,51 @@ MB12XX::collect()
 
 	/* read from the sensor */
 	uint8_t val[2] = {0, 0};
+    uint8_t cmd = 0;
+    perf_begin(_sample_perf);
 
-	perf_begin(_sample_perf);
+    cmd = 2;
 
-	ret = transfer(nullptr, 0, &val[0], 2);
+    ret = transfer(&cmd, 1,nullptr,0);
+    if (ret < 0) {
+        DEVICE_DEBUG("error send read command: %d", ret);
+        perf_count(_comms_errors);
+        perf_end(_sample_perf);
+        return ret;
+    }
 
-	if (ret < 0) {
-		DEVICE_DEBUG("error reading from sensor: %d", ret);
-		perf_count(_comms_errors);
-		perf_end(_sample_perf);
-		return ret;
-	}
+    usleep(200);
+    ret = transfer(nullptr,0,&val[0],1);
+    if (ret < 0) {
+        DEVICE_DEBUG("error reading from register 2: %d", ret);
+        perf_count(_comms_errors);
+        perf_end(_sample_perf);
+        return ret;
+    }
+    //printf("collect val[0] = 0x%x,val[1] = %x\r\n",val[0],val[1]);
 
-	uint16_t distance_cm = val[0] << 8 | val[1];
-	float distance_m = float(distance_cm) * 1e-2f;
+
+    cmd = 0x3;
+    ret = transfer(&cmd,1,nullptr,0);
+    if (ret < 0) {
+        DEVICE_DEBUG("error send read command: %d", ret);
+        perf_count(_comms_errors);
+        perf_end(_sample_perf);
+        return ret;
+    }
+
+    usleep(200);
+    ret = transfer(nullptr,0,&val[1],1);
+    if (ret < 0) {
+        DEVICE_DEBUG("error reading from register 2: %d", ret);
+        perf_count(_comms_errors);
+        perf_end(_sample_perf);
+        return ret;
+    }
+    //printf("collect val[0] = %x,val[1] = %x\r\n",val[0],val[1]);
+
+    uint16_t distance_mm = val[0] << 8 | val[1];
+    float distance_m = float(distance_mm) * 1e-3f;
 
 	struct distance_sensor_s report;
 	report.timestamp = hrt_absolute_time();
@@ -584,7 +732,8 @@ MB12XX::collect()
 	report.max_distance = get_maximum_distance();
 	report.covariance = 0.0f;
 	/* TODO: set proper ID */
-	report.id = 0;
+    report.id = getIdByAddr(addr_ind[_cycle_counter]);
+    //printf("report id = %d,distance = %0.1f\r\n",report.id,(double)report.current_distance);
 
 	/* publish it, if we are the primary */
 	if (_distance_sensor_topic != nullptr) {
@@ -742,6 +891,7 @@ void	stop();
 void	test();
 void	reset();
 void	info();
+void    change_addr();
 
 /**
  * Start the driver.
@@ -840,7 +990,7 @@ test()
 	}
 
 	/* read the sensor 5x and report each value */
-	for (unsigned i = 0; i < 5; i++) {
+    for (unsigned i = 0; i < 100; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
@@ -912,6 +1062,17 @@ info()
 
 	exit(0);
 }
+void change_addr()
+{
+    if (g_dev == nullptr) {
+        errx(1, "driver not running");
+    }
+
+    printf("state @ %p\n", g_dev);
+    g_dev->change_address(0xd0);
+
+    exit(0);
+}
 
 } /* namespace */
 
@@ -952,6 +1113,10 @@ mb12xx_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
 		mb12xx::info();
 	}
+
+    if (!strcmp(argv[1], "cha")) {
+        mb12xx::change_addr();
+    }
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
 }

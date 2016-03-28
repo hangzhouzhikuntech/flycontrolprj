@@ -188,3 +188,4 @@ bool circuit_breaker_engaged_airspd_check
 bool circuit_breaker_engaged_enginefailure_check
 bool circuit_breaker_engaged_gpsfailure_check
 bool cb_usb
+bool distance_sensor_ok

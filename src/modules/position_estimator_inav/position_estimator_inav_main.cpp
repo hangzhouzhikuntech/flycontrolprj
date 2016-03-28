@@ -77,6 +77,11 @@
 #include <terrain_estimation/terrain_estimator.h>
 #include "position_estimator_inav_params.h"
 #include "inertial_filter.h"
+#include "qiaoliang/qiaoliang_define.h"
+
+#if __DAVID_DISTANCE__
+#include <uORB/topics/vehicle_control_mode.h>
+#endif/*__DAVID_DISTANCE__*/
 
 #define MIN_VALID_W 0.00001f
 #define PUB_INTERVAL 10000	// limit publish rate to 100 Hz
@@ -373,6 +378,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&lidar, 0, sizeof(lidar));
 	struct vehicle_rates_setpoint_s rates_setpoint;
 	memset(&rates_setpoint, 0, sizeof(rates_setpoint));
+	
+#if __DAVID_DISTANCE__
+	struct vehicle_control_mode_s _control_mode_s;		/**< distance estimate */
+	memset(&_control_mode_s, 0, sizeof(_control_mode_s));
+#endif/*__DAVID_DISTANCE__*/	
 
 	/* subscribe */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -386,6 +396,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int att_pos_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
 	int distance_sensor_sub = orb_subscribe(ORB_ID(distance_sensor));
 	int vehicle_rate_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
+#if __DAVID_DISTANCE__
+	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+#endif/*__DAVID_DISTANCE__*/
 
 	/* advertise */
 	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
@@ -797,6 +810,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					vision_updates++;
 				}
 			}
+
+#if __DAVID_DISTANCE__
+			orb_check(control_mode_sub, &updated);
+			if(updated){
+				orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &_control_mode_s);
+			}
+#endif/*__DAVID_DISTANCE__*/
 
 			/* vehicle mocap position */
 			orb_check(att_pos_mocap_sub, &updated);
@@ -1318,7 +1338,23 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.vx = x_est[1];
 			local_pos.y = y_est[0];
 			local_pos.vy = y_est[1];
+#if __DAVID_DISTANCE__
+		//	printf("aalidar.id  %d lidar.current_distance %.2f \n",lidar.id,(double)lidar.current_distance);
+									
+			if(_control_mode_s.flag_sonic_sensor)
+			{	//printf("bblidar.id  %d lidar.current_distance %.2f \n",lidar.id,(double)lidar.current_distance);
+				if(lidar.id ==2){
+					local_pos.z = lidar.current_distance;
+					local_pos.distace_sensor_ok = true;
+					
+				}
+			}else{
+				local_pos.z = z_est[0];
+				local_pos.distace_sensor_ok = false;
+			}
+#else
 			local_pos.z = z_est[0];
+#endif/*__DAVID_DISTANCE__*/
 			local_pos.vz = z_est[1];
 			local_pos.yaw = att.yaw;
 			local_pos.dist_bottom_valid = dist_bottom_valid;

@@ -46,6 +46,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/safety.h>
+#include "qiaoliang/qiaoliang_define.h"
 
 typedef enum {
 	TRANSITION_DENIED = -1,

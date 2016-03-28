@@ -86,6 +86,11 @@
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
+#include "qiaoliang/qiaoliang_define.h"
+
+#if __DAVID_CHAOSHENGBO__
+#include<uORB/topics/distance_sensor.h>
+#endif/*__DAVID_CHAOSHENGBO__*/
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
@@ -136,6 +141,13 @@ private:
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
+#if __DAVID_CHAOSHENGBO__
+	int 	_distance_sensor_sub; 	/**< offboard global velocity setpoint */
+#endif/*__DAVID_CHAOSHENGBO__*/
+#if __DAVID_DISTANCE__
+	float	_init_dis;
+	bool	_init_judge;
+#endif/*__DAVID_DISTANCE__*/
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
@@ -153,6 +165,9 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
+#if __DAVID_CHAOSHENGBO__
+	struct 	distance_sensor_s 					_distance_sp;
+#endif/*__DAVID_CHAOSHENGBO__*/
 
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
@@ -192,6 +207,9 @@ private:
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
+#if __DAVID_DISTANCE__
+		param_t sensor_limit;
+#endif/*__DAVID_DISTANCE__*/	
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -214,6 +232,9 @@ private:
 		float hold_max_xy;
 		float hold_max_z;
 		float acc_hor_max;
+#if __DAVID_DISTANCE__
+		float sensor_limit;
+#endif/*__DAVID_DISTANCE__*/	
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -357,6 +378,13 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_global_vel_sp_sub(-1),
+#if __DAVID_CHAOSHENGBO__
+	_distance_sensor_sub(-1),
+#endif/*__DAVID_CHAOSHENGBO__*/
+#if __DAVID_DISTANCE__
+	_init_dis(0),
+	_init_judge(false),
+#endif/*__DAVID_DISTANCE__*/
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -397,6 +425,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	memset(&_pos_sp_triplet, 0, sizeof(_pos_sp_triplet));
 	memset(&_local_pos_sp, 0, sizeof(_local_pos_sp));
 	memset(&_global_vel_sp, 0, sizeof(_global_vel_sp));
+#if __DAVID_CHAOSHENGBO__
+	memset(&_distance_sp, 0, sizeof(_distance_sp));
+#endif/*__DAVID_CHAOSHENGBO__*/
 
 	memset(&_ref_pos, 0, sizeof(_ref_pos));
 
@@ -449,6 +480,10 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
+#if __DAVID_DISTANCE__
+	_params_handles.sensor_limit = param_find("MPC_SENSOR_LIMIT");
+#endif/*__DAVID_DISTANCE__*/	
+	
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -549,6 +584,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.hold_max_z = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.acc_hor_max, &v);
 		_params.acc_hor_max = v;
+#if __DAVID_DISTANCE__
+		param_get(_params_handles.sensor_limit, &v);
+		_params.sensor_limit = v;
+#endif/*__DAVID_DISTANCE__*/	
 
 		_params.sp_offs_max = _params.vel_max.edivide(_params.pos_p) * 2.0f;
 
@@ -637,6 +676,14 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	}
+#if __DAVID_CHAOSHENGBO__
+	orb_check(_distance_sensor_sub, &updated);
+	if (updated) {
+		orb_copy(ORB_ID(distance_sensor), _distance_sensor_sub, &_distance_sp);
+	}
+#endif/*__DAVID_CHAOSHENGBO__*/
+
+	
 }
 
 float
@@ -1352,6 +1399,16 @@ MulticopterPositionControl::task_main()
 				}
 
 				if (_run_alt_control) {
+#if __DAVID_DISTANCE__
+					if(_init_judge == false && _local_pos.distace_sensor_ok){
+						_pos_sp(2) = _pos(2);
+						_init_judge = true;
+					}
+					if(!_local_pos.distace_sensor_ok&&_init_judge == true){
+						_pos_sp(2)= _pos(2);
+						_init_judge = false;
+					}
+#endif/*__DAVID_DISTANCE__*/
 					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
 				}
 
@@ -1509,7 +1566,13 @@ MulticopterPositionControl::task_main()
 
 					/* velocity error */
 					math::Vector<3> vel_err = _vel_sp - _vel;
+#if __DAVID_DISTANCE__
+					//printf("_params.sensor_limit %.2f \n",(double)_params.sensor_limit);
 
+					if(_local_pos.distace_sensor_ok&&_pos(2)<_params.sensor_limit){
+						vel_err(2)=0;
+					}
+#endif/*__DAVID_DISTANCE__*/
 					/* thrust vector in NED frame */
 					// TODO?: + _vel_sp.emult(_params.vel_ff)
 					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
@@ -1853,6 +1916,16 @@ MulticopterPositionControl::task_main()
 			if (!_control_mode.flag_control_velocity_enabled) {
 				_att_sp.roll_body = _manual.y * _params.man_roll_max;
 				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+#if	__DAVID_CHAOSHENGBO__
+				if(_distance_sp.id == 3&&_distance_sp.current_distance<5){
+					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body,0.0f,100.0f);
+					
+				}
+				if(_distance_sp.id == 4&&_distance_sp.current_distance<5){
+					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body,-100.0f,0.0f);
+				}
+#endif/*__DAVID_CHAOSHENGBO__*/
+
 			}
 
 			/* control throttle directly if no climb rate controller is active */
