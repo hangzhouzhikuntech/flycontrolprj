@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ## PX4 Flight Core and PX4 Middleware ##
 
 [![Build Status](https://travis-ci.org/PX4/Firmware.svg?branch=master)](https://travis-ci.org/PX4/Firmware) [![Coverity Scan](https://scan.coverity.com/projects/3966/badge.svg?flat=1)](https://scan.coverity.com/projects/3966?tab=overview)
@@ -33,3 +34,7 @@ This repository contains code supporting these boards:
   * FMUv4.x (Pixhawk X and [Pixracer](http://dev.px4.io/hardware-pixracer.html))
   * AeroCore (v1 and v2)
   * STM32F4Discovery (basic support) [Tutorial](https://pixhawk.org/modules/stm32f4discovery)
+=======
+# flycontrolprj
+hangzhou zhikun technology develop repository
+>>>>>>> 83c66817b4c431feff8f2f694c7d40e94f1a5f9d
