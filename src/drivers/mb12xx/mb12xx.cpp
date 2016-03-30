@@ -802,6 +802,10 @@ MB12XX::cycle_trampoline(void *arg)
 void
 MB12XX::cycle()
 {
+        if (0 == addr_ind.size())
+        {
+            return;
+        }
 	if (_collect_phase) {
 		_index_counter = addr_ind[_cycle_counter]; /*sonar from previous iteration collect is now read out */
 		set_address(_index_counter);
