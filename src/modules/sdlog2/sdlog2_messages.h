@@ -44,6 +44,7 @@
 #define SDLOG2_MESSAGES_H_
 
 #include "sdlog2_format.h"
+#include "qiaoliang/qiaoliang_define.h"
 
 /* define message formats */
 
@@ -183,6 +184,10 @@ struct log_STAT_s {
 	uint8_t battery_warning;
 	uint8_t landed;
 	float load;
+#if __DAVID_NAV_LOG__
+	uint8_t distance_sensor_ok;
+	uint8_t nav_state;
+#endif/*__DAVID_NAV_LOG__*/	
 };
 
 /* --- RC - RC INPUT CHANNELS --- */
@@ -545,7 +550,11 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
+#if __DAVID_NAV_LOG__
+	LOG_FORMAT(STAT, "BBBfBBfBB", 	"MainState,ArmS,Failsafe,BatRem,BatWarn,Landed,Load,seok,navstat"),
+#else
 	LOG_FORMAT(STAT, "BBBfBBf",		"MainState,ArmS,Failsafe,BatRem,BatWarn,Landed,Load"),
+#endif/*__DAVID_NAV_LOG__*/
 	LOG_FORMAT(VTOL, "f",		"Arsp"),
 	LOG_FORMAT(CTS, "fffffff", "Vx_b,Vy_b,Vz_b,Vinf,P,Q,R"),
 	LOG_FORMAT(RC, "ffffffffffffBBBL",		"C0,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,RSSI,CNT,Lost,Drop"),

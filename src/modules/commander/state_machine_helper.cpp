@@ -340,7 +340,13 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		if (!status->is_rotary_wing ||
 		    (status->condition_local_altitude_valid ||
 		     status->condition_global_position_valid)) {
-			ret = TRANSITION_CHANGED;
+#if __DAVID_DISTANCE__
+				if(status->distance_sensor_ok){
+					ret = TRANSITION_CHANGED;
+				}
+#else/*__DAVID_DISTANCE__*/
+					ret = TRANSITION_CHANGED;
+#endif/*__DAVID_DISTANCE__*/
 		}
 		break;
 
@@ -618,13 +624,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 				break;
 
 			case vehicle_status_s::MAIN_STATE_ALTCTL:
-#if __DAVID_DISTANCE__
-			if(status->distance_sensor_ok){
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
-			}
-#else/*__DAVID_DISTANCE__*/
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
-#endif/*__DAVID_DISTANCE__*/
 				break;
 
 			case vehicle_status_s::MAIN_STATE_POSCTL:

@@ -88,9 +88,6 @@
 #include <controllib/block/BlockParam.hpp>
 #include "qiaoliang/qiaoliang_define.h"
 
-#if __DAVID_CHAOSHENGBO__
-#include<uORB/topics/distance_sensor.h>
-#endif/*__DAVID_CHAOSHENGBO__*/
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
@@ -141,14 +138,14 @@ private:
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
-#if __DAVID_CHAOSHENGBO__
-	int 	_distance_sensor_sub; 	/**< offboard global velocity setpoint */
-#endif/*__DAVID_CHAOSHENGBO__*/
+
 #if __DAVID_DISTANCE__
 	float	_init_dis;
 	bool	_init_judge;
 #endif/*__DAVID_DISTANCE__*/
-
+#if __DAVID_YAW_FIX__
+	bool 	_control_flag;
+#endif/*__DAVID_YAW_FIX__*/
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
@@ -165,9 +162,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
-#if __DAVID_CHAOSHENGBO__
-	struct 	distance_sensor_s 					_distance_sp;
-#endif/*__DAVID_CHAOSHENGBO__*/
+
 
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
@@ -378,13 +373,14 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_global_vel_sp_sub(-1),
-#if __DAVID_CHAOSHENGBO__
-	_distance_sensor_sub(-1),
-#endif/*__DAVID_CHAOSHENGBO__*/
+
 #if __DAVID_DISTANCE__
 	_init_dis(0),
 	_init_judge(false),
 #endif/*__DAVID_DISTANCE__*/
+#if __DAVID_YAW_FIX__
+	_control_flag(false),
+#endif/*__DAVID_YAW_FIX__*/
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -425,9 +421,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	memset(&_pos_sp_triplet, 0, sizeof(_pos_sp_triplet));
 	memset(&_local_pos_sp, 0, sizeof(_local_pos_sp));
 	memset(&_global_vel_sp, 0, sizeof(_global_vel_sp));
-#if __DAVID_CHAOSHENGBO__
-	memset(&_distance_sp, 0, sizeof(_distance_sp));
-#endif/*__DAVID_CHAOSHENGBO__*/
+
 
 	memset(&_ref_pos, 0, sizeof(_ref_pos));
 
@@ -676,14 +670,7 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	}
-#if __DAVID_CHAOSHENGBO__
-	orb_check(_distance_sensor_sub, &updated);
-	if (updated) {
-		orb_copy(ORB_ID(distance_sensor), _distance_sensor_sub, &_distance_sp);
-	}
-#endif/*__DAVID_CHAOSHENGBO__*/
 
-	
 }
 
 float
@@ -1205,9 +1192,14 @@ MulticopterPositionControl::task_main()
 	bool was_armed = false;
 
 	hrt_abstime t_prev = 0;
+#if __DAVID_YAW_FIX__
+	_control_flag = false;
+#endif/*__DAVID_YAW_FIX__*/
 
 	math::Vector<3> thrust_int;
 	thrust_int.zero();
+
+
 	math::Matrix<3, 3> R;
 	R.identity();
 
@@ -1294,11 +1286,25 @@ MulticopterPositionControl::task_main()
 			_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
 		}
 
+#if __DAVID_YAW_FIX__
+		if(_manual.z>0.6f && _control_flag ==false){
+			_control_flag = true;
+		}
+		if(!_arming.armed){_control_flag = false;}
+#endif/*__DAVID_YAW_FIX__*/
+#if __DAVID_YAW_FIX__
+		if ((_control_mode.flag_control_altitude_enabled ||
+				_control_mode.flag_control_position_enabled ||
+				_control_mode.flag_control_climb_rate_enabled ||
+				_control_mode.flag_control_velocity_enabled)&&_control_flag)
+#else
 		if (_control_mode.flag_control_altitude_enabled ||
 				_control_mode.flag_control_position_enabled ||
 				_control_mode.flag_control_climb_rate_enabled ||
-				_control_mode.flag_control_velocity_enabled) {
+				_control_mode.flag_control_velocity_enabled)
 
+#endif/*__DAVID_YAW_FIX__*/
+		{
 			_vel_ff.zero();
 
 			/* by default, run position/altitude controller. the control_* functions
@@ -1891,8 +1897,15 @@ MulticopterPositionControl::task_main()
 			}
 
 			/* do not move yaw while sitting on the ground */
-			else if (!_vehicle_status.condition_landed &&
-					!(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f)) {
+			else if 
+#if __DAVID_YAW_FIX__
+			(!_vehicle_status.condition_landed&&_control_flag)
+#else/*__DAVID_YAW_FIX__*/
+			(!_vehicle_status.condition_landed &&
+					!(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f))
+
+#endif/*__DAVID_YAW_FIX__*/
+			{
 
 				/* we want to know the real constraint, and global overrides manual */
 				const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
@@ -1914,17 +1927,9 @@ MulticopterPositionControl::task_main()
 
 			/* control roll and pitch directly if we no aiding velocity controller is active */
 			if (!_control_mode.flag_control_velocity_enabled) {
+
 				_att_sp.roll_body = _manual.y * _params.man_roll_max;
 				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
-#if	__DAVID_CHAOSHENGBO__
-				if(_distance_sp.id == 3&&_distance_sp.current_distance<5){
-					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body,0.0f,100.0f);
-					
-				}
-				if(_distance_sp.id == 4&&_distance_sp.current_distance<5){
-					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body,-100.0f,0.0f);
-				}
-#endif/*__DAVID_CHAOSHENGBO__*/
 
 			}
 

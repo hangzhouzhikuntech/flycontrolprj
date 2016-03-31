@@ -2066,22 +2066,18 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 #if __DAVID_DISTANCE__
-
-			
-		orb_check(distance_sensor_sub, &updated);
-		if(updated){
-			orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &distance_sensor_rece);
-			//if(distance_sensor_rece.id==2){
-			//	printf("distance_sensor_rece.current_distance %.2f \n",(double)distance_sensor_rece.current_distance);
-			//}
-			if(armed.armed && distance_sensor_rece.id==2 &&distance_sensor_rece.current_distance<2.0f && distance_sensor_rece.current_distance>0.3f)
-			{
-			
-			//	printf("distance_sensor_ok \n");
-				status.distance_sensor_ok = true;
+		if(armed.armed){
+			orb_check(distance_sensor_sub, &updated);
+			if(updated){
+				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &distance_sensor_rece);
+				if(distance_sensor_rece.id==2 &&distance_sensor_rece.current_distance<2.0f && distance_sensor_rece.current_distance>0.0f)
+				{
+					status.distance_sensor_ok = true;
+				}else{
+					status.distance_sensor_ok = false;
+				}
 			}
-		}
-		if(!armed.armed){
+		}else{
 			status.distance_sensor_ok = false;
 		}
 	

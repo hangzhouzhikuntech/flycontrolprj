@@ -1326,6 +1326,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_STAT.battery_warning = buf_status.battery_warning;
 			log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
 			log_msg.body.log_STAT.load = buf_status.load;
+#if __DAVID_NAV_LOG__
+			log_msg.body.log_STAT.distance_sensor_ok = buf_status.distance_sensor_ok;
+			log_msg.body.log_STAT.nav_state = buf_status.nav_state;
+#endif/*__DAVID_NAV_LOG__*/
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
 
