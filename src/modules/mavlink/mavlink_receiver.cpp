@@ -81,6 +81,8 @@
 #include <commander/px4_custom_mode.h>
 #include <geo/geo.h>
 
+#include "qiaoliang/qiaoliang_define.h"
+
 __BEGIN_DECLS
 
 #include "mavlink_bridge_header.h"

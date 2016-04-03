@@ -26,8 +26,10 @@
 #define __DAVID_NAV_LOG__  						(1)
 #define __DAVID_YAW_FIX__  						(1)
 #define __DAVID_CHAO_WARING__  					(0)
-
 #define __DAVID_NOUSE__  						(1)
+
+
+#define __FMU_CONFIG__  						(1)
 
 
 #if __DEBUG__

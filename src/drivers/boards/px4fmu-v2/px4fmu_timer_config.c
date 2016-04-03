@@ -47,6 +47,7 @@
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/stm32/drv_io_timer.h>
+#include "qiaoliang/qiaoliang_define.h"
 
 #include "board_config.h"
 
@@ -75,6 +76,8 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 };
 
 __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
+#if __FMU_CONFIG__
+#else
 	{
 		.gpio_out = GPIO_TIM1_CH4OUT,
 		.gpio_in  = GPIO_TIM1_CH4IN,
@@ -123,4 +126,5 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 		.ccr_offset = STM32_GTIM_CCR3_OFFSET,
 		.masks  = GTIM_SR_CC3IF | GTIM_SR_CC3OF
 	}
+#endif/*__FMU_CONFIG__*/
 };

@@ -87,10 +87,15 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 
+#include "qiaoliang/qiaoliang_define.h"
 
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
 #endif
+
+#if __FMU_CONFIG__
+#include <uORB/topics/vehicle_command.h>
+#endif/*__FMU_CONFIG__*/
 
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 #define NAN_VALUE	(0.0f/0.0f)		/**< NaN value for throttle lock mode */
@@ -161,6 +166,9 @@ private:
 	uint32_t	_pwm_alt_rate_channels;
 	unsigned	_current_update_rate;
 	struct work_s	_work;
+#if __FMU_CONFIG__
+	int 	_command_sub;
+#endif/*__FMU_CONFIG__*/
 	int		_armed_sub;
 	int		_param_sub;
 	struct rc_input_values	_rc_in;
@@ -189,6 +197,9 @@ private:
 
 	static pwm_limit_t	_pwm_limit;
 	static actuator_armed_s	_armed;
+#if __FMU_CONFIG__
+	static vehicle_command_s _com_rece;
+#endif/*__FMU_CONFIG__*/
 	uint16_t	_failsafe_pwm[_max_actuators];
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
@@ -262,12 +273,22 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 	{GPIO_GPIO7_INPUT, GPIO_GPIO7_OUTPUT, GPIO_CAN2_RX_2},
 #endif
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-	{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0},
-	{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0},
-	{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0},
-	{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0},
-	{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0},
-	{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0},
+#if __FMU_CONFIG__
+		{GPIO_GPIO0_INPUT,		 GPIO_GPIO0_OUTPUT, 	  GPIO_TIM1_CH4OUT},
+		{GPIO_GPIO1_INPUT,		 GPIO_GPIO1_OUTPUT, 	  0},
+		{GPIO_GPIO2_INPUT,		 GPIO_GPIO2_OUTPUT, 	  0},
+		{GPIO_GPIO3_INPUT,		 GPIO_GPIO3_OUTPUT, 	  0},
+		{GPIO_GPIO4_INPUT,		 GPIO_GPIO4_OUTPUT, 	  0},
+		{GPIO_GPIO5_INPUT,		 GPIO_GPIO5_OUTPUT, 	  0},
+#else/*__FMU_CONFIG__*/
+		{GPIO_GPIO0_INPUT,		 GPIO_GPIO0_OUTPUT, 	  0},
+		{GPIO_GPIO1_INPUT,		 GPIO_GPIO1_OUTPUT, 	  0},
+		{GPIO_GPIO2_INPUT,		 GPIO_GPIO2_OUTPUT, 	  0},
+		{GPIO_GPIO3_INPUT,		 GPIO_GPIO3_OUTPUT, 	  0},
+		{GPIO_GPIO4_INPUT,		 GPIO_GPIO4_OUTPUT, 	  0},
+		{GPIO_GPIO5_INPUT,		 GPIO_GPIO5_OUTPUT, 	  0},
+
+#endif/*__FMU_CONFIG__*/
 
 	{0,                      GPIO_VDD_5V_PERIPH_EN,   0},
 	{0,                      GPIO_VDD_3V3_SENSORS_EN, 0},
@@ -306,6 +327,9 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 const unsigned		PX4FMU::_ngpio = sizeof(PX4FMU::_gpio_tab) / sizeof(PX4FMU::_gpio_tab[0]);
 pwm_limit_t		PX4FMU::_pwm_limit;
 actuator_armed_s	PX4FMU::_armed = {};
+#if __FMU_CONFIG__
+vehicle_command_s	PX4FMU::_com_rece={};
+#endif/*__FMU_CONFIG__*/
 
 namespace
 {
@@ -322,6 +346,9 @@ PX4FMU::PX4FMU() :
 	_pwm_alt_rate_channels(0),
 	_current_update_rate(0),
 	_work{},
+#if __FMU_CONFIG__
+	_command_sub(-1),
+#endif/*__FMU_CONFIG__*/	
 	_armed_sub(-1),
 	_param_sub(-1),
 	_rc_in{},
@@ -782,6 +809,9 @@ PX4FMU::cycle()
 	if (!_initialized) {
 		/* force a reset of the update rate */
 		_current_update_rate = 0;
+#if __FMU_CONFIG__
+		_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+#endif/*__FMU_CONFIG__*/
 
 		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -799,6 +829,9 @@ PX4FMU::cycle()
 		// disable CPPM input by mapping it away from the timer capture input
 		stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
 #endif
+#if __FMU_CONFIG__
+		stm32_configgpio(_gpio_tab[0].output);
+#endif/*__FMU_CONFIG__*/
 
 		_initialized = true;
 	}
@@ -945,6 +978,8 @@ PX4FMU::cycle()
 			publish_pwm_outputs(pwm_limited, num_outputs);
 		}
 	}
+		
+
 
 	/* check arming state */
 	bool updated = false;
@@ -965,6 +1000,24 @@ PX4FMU::cycle()
 			update_pwm_out_state(pwm_on);
 		}
 	}
+#if __FMU_CONFIG__
+		orb_check(_command_sub, &updated);
+		if(updated){
+			orb_copy(ORB_ID(vehicle_command), _command_sub, &_com_rece);
+
+			PX4FLOW_WARNX((nullptr,"_com_rece.command %.2f",(double)_com_rece.command));
+
+			if(_com_rece.command == 253){
+				if((int)_com_rece.param2==2){
+					stm32_gpiowrite(_gpio_tab[0].alt,1);
+					}
+				if((int)_com_rece.param2==1){
+					stm32_gpiowrite(_gpio_tab[0].alt,0);
+					}
+			}
+		}
+
+#endif/*__FMU_CONFIG__*/
 
 	orb_check(_param_sub, &updated);
 
