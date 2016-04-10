@@ -789,8 +789,9 @@ fi
 if ver hwcmp PX4FMU_V2
 then
 	# Check for flow sensor - as it is a background task, launch it last
-	px4flow start &
+	#px4flow start &
 	mb12xx start &
+	gimbal start &
 fi
 
 # Start USB shell if no microSD present, MAVLink else

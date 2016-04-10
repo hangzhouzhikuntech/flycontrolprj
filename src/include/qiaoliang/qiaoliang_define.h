@@ -28,8 +28,10 @@
 #define __DAVID_CHAO_WARING__  					(0)
 #define __DAVID_NOUSE__  						(1)
 
+#define __ATT_PROTECT_FIX__  					(1)
 
 #define __FMU_CONFIG__  						(1)
+#define __FMU_PMW_YUNTAI__ 						(1)
 
 
 #if __DEBUG__

@@ -314,4 +314,15 @@ PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
  * @min 0
  */
 PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
-
+#if __DAVID_DISTANCE__
+/**
+ * to select the sensor id of ultrasonic
+ *
+ * the sensor id to use
+ *
+ * @group Commander
+ * @min 0
+ * @max 255
+ */
+PARAM_DEFINE_INT32(SENSOR_ID_USE, 0);
+#endif/*__DAVID_DISTANCE__*/

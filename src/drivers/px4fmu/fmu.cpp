@@ -169,6 +169,12 @@ private:
 #if __FMU_CONFIG__
 	int 	_command_sub;
 #endif/*__FMU_CONFIG__*/
+#if __FMU_PMW_YUNTAI__
+	uint16_t _pwm_limited;
+	uint16_t _ramp_min_pwm;
+	uint16_t _max_pwm_a;
+#endif/*__FMU_PMW_YUNTAI__*/
+
 	int		_armed_sub;
 	int		_param_sub;
 	struct rc_input_values	_rc_in;
@@ -349,6 +355,11 @@ PX4FMU::PX4FMU() :
 #if __FMU_CONFIG__
 	_command_sub(-1),
 #endif/*__FMU_CONFIG__*/	
+#if __FMU_PMW_YUNTAI__
+	_pwm_limited(1000),
+	_ramp_min_pwm(1000),
+	_max_pwm_a(2000),
+#endif/*__FMU_PMW_YUNTAI__*/
 	_armed_sub(-1),
 	_param_sub(-1),
 	_rc_in{},
@@ -831,6 +842,7 @@ PX4FMU::cycle()
 #endif
 #if __FMU_CONFIG__
 		stm32_configgpio(_gpio_tab[0].output);
+		stm32_configgpio(_gpio_tab[1].output);
 #endif/*__FMU_CONFIG__*/
 
 		_initialized = true;
@@ -900,7 +912,6 @@ PX4FMU::cycle()
 			if (_control_subs[i] > 0) {
 				if (_poll_fds[poll_id].revents & POLLIN) {
 					orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
-
 					/* main outputs */
 					if (i == 0) {
 						//main_out_latency = hrt_absolute_time() - _controls[i].timestamp - 250;
@@ -915,10 +926,33 @@ PX4FMU::cycle()
 						}
 					}
 				}
-
 				poll_id++;
 			}
 		}
+#if __FMU_PMW_YUNTAI__
+		PX4FLOW_WARNX((nullptr,"controls[1].control[i] %.2f  %.2f  %.2f",(double)_controls[1].control[0],(double)_controls[1].control[1],(double)_controls[1].control[2]));
+		for(unsigned i = 0; i < 3; i++){
+			_pwm_limited = _controls[1].control[i] * (_max_pwm_a - _ramp_min_pwm) / 2 + (_max_pwm_a + _ramp_min_pwm) / 2;
+			if(_pwm_limited >2000){_pwm_limited = 2000;};
+			if(_pwm_limited <1000){_pwm_limited = 1000;};
+			pwm_output_set(i, _pwm_limited);
+		}
+
+		
+	//	pwm_limited = _controls[1].control[0] * (max_pwm_a - ramp_min_pwm) / 2 + (max_pwm_a + ramp_min_pwm) / 2;
+	//	if(pwm_limited >2000){pwm_limited = 2000;};
+	//	if(pwm_limited <1000){pwm_limited = 1000;};
+		/* output to the servos */
+		//for (size_t i = 0; i < num_outputs; i++) {
+		//pwm_output_set(0, pwm_limited);
+		//pwm_output_set(1, pwm_limited);
+		//pwm_output_set(2, pwm_limited);
+		//pwm_output_set(3, pwm_limited);
+		//}
+		//publish_pwm_outputs(pwm_limited, num_outputs);
+				
+#endif/*__FMU_PMW_YUNTAI__*/
+
 
 		/* can we mix? */
 		if (_mixers != nullptr) {
@@ -1009,10 +1043,10 @@ PX4FMU::cycle()
 
 			if(_com_rece.command == 253){
 				if((int)_com_rece.param2==2){
-					stm32_gpiowrite(_gpio_tab[0].alt,1);
+					stm32_gpiowrite(_gpio_tab[0].output,1);
 					}
 				if((int)_com_rece.param2==1){
-					stm32_gpiowrite(_gpio_tab[0].alt,0);
+					stm32_gpiowrite(_gpio_tab[0].output,0);
 					}
 			}
 		}

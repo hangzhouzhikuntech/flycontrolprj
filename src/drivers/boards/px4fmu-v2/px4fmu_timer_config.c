@@ -77,7 +77,41 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 
 __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 #if __FMU_CONFIG__
-#else
+
+{
+	.gpio_out = GPIO_TIM1_CH2OUT,
+	.gpio_in = GPIO_TIM1_CH2IN,
+	.timer_index = 0,
+	.timer_channel = 2,
+	.ccr_offset = STM32_GTIM_CCR2_OFFSET,
+	.masks	= GTIM_SR_CC2IF | GTIM_SR_CC2OF
+},
+{
+	.gpio_out = GPIO_TIM1_CH1OUT,
+	.gpio_in = GPIO_TIM1_CH1IN,
+	.timer_index = 0,
+	.timer_channel = 1,
+	.ccr_offset = STM32_GTIM_CCR1_OFFSET,
+	.masks	= GTIM_SR_CC1IF | GTIM_SR_CC1OF
+},
+{
+	.gpio_out = GPIO_TIM4_CH2OUT,
+	.gpio_in = GPIO_TIM4_CH2IN,
+	.timer_index = 1,
+	.timer_channel = 2,
+	.ccr_offset = STM32_GTIM_CCR2_OFFSET,
+	.masks	= GTIM_SR_CC2IF | GTIM_SR_CC2OF
+},
+{
+	.gpio_out = GPIO_TIM4_CH3OUT,
+	.gpio_in = GPIO_TIM4_CH3IN,
+	.timer_index = 1,
+	.timer_channel = 3,
+	.ccr_offset = STM32_GTIM_CCR3_OFFSET,
+	.masks	= GTIM_SR_CC3IF | GTIM_SR_CC3OF
+}
+
+#else/*__FMU_CONFIG__*/
 	{
 		.gpio_out = GPIO_TIM1_CH4OUT,
 		.gpio_in  = GPIO_TIM1_CH4IN,

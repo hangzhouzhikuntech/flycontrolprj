@@ -1067,6 +1067,9 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_geofence_action = param_find("GF_ACTION");
 	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
 	param_t _param_map_mode_sw = param_find("RC_MAP_MODE_SW");
+#if __DAVID_DISTANCE__
+	param_t _param_sensor_id= param_find("SENSOR_ID_USE");
+#endif/*__DAVID_DISTANCE__*/
 
 	// These are too verbose, but we will retain them a little longer
 	// until we are sure we really don't need them.
@@ -1432,6 +1435,9 @@ int commander_thread_main(int argc, char *argv[])
 
 	int32_t disarm_when_landed = 0;
 	int32_t map_mode_sw = 0;
+#if __DAVID_DISTANCE__
+	int32_t	sensor_id;
+#endif/*__DAVID_DISTANCE__*/
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
@@ -1521,6 +1527,9 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
 			param_get(_param_map_mode_sw, &map_mode_sw);
+#if __DAVID_DISTANCE__
+			param_get(_param_sensor_id, &sensor_id);
+#endif/*__DAVID_DISTANCE__*/
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
@@ -2070,7 +2079,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_check(distance_sensor_sub, &updated);
 			if(updated){
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &distance_sensor_rece);
-				if(distance_sensor_rece.id==2 &&distance_sensor_rece.current_distance<2.0f && distance_sensor_rece.current_distance>0.0f)
+				if(distance_sensor_rece.id == sensor_id &&distance_sensor_rece.current_distance<2.0f && distance_sensor_rece.current_distance>0.0f)
 				{
 					status.distance_sensor_ok = true;
 				}else{

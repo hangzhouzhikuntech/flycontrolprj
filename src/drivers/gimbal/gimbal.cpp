@@ -80,6 +80,8 @@
 #include <mathlib/math/test/test.hpp>
 #include <mathlib/math/Quaternion.hpp>
 
+#include "qiaoliang/qiaoliang_define.h"
+
 /* Configuration Constants */
 
 /* oddly, ERROR is not defined for c++ */
