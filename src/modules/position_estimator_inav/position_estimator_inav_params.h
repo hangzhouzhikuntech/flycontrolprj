@@ -40,6 +40,7 @@
  */
 
 #include <systemlib/param/param.h>
+#include "qiaoliang/qiaoliang_define.h"
 
 struct position_estimator_inav_params {
 	float w_z_baro;
@@ -70,6 +71,9 @@ struct position_estimator_inav_params {
 	int32_t enable_lidar_alt_est;
 	float lidar_calibration_offset;
 	int32_t att_ext_hdg_m;
+#if __DAVID_DISTANCE__
+	int32_t sensor_id;
+#endif/*__DAVID_DISTANCE__*/	
 };
 
 struct position_estimator_inav_param_handles {
@@ -101,6 +105,9 @@ struct position_estimator_inav_param_handles {
 	param_t enable_lidar_alt_est;
 	param_t lidar_calibration_offset;
 	param_t att_ext_hdg_m;
+#if __DAVID_DISTANCE__
+	param_t sensor_id;
+#endif/*__DAVID_DISTANCE__*/
 };
 
 #define CBRK_NO_VISION_KEY	328754

@@ -1038,7 +1038,6 @@ PX4FMU::cycle()
 		orb_check(_command_sub, &updated);
 		if(updated){
 			orb_copy(ORB_ID(vehicle_command), _command_sub, &_com_rece);
-
 			PX4FLOW_WARNX((nullptr,"_com_rece.command %.2f",(double)_com_rece.command));
 
 			if(_com_rece.command == 253){

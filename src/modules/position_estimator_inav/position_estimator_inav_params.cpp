@@ -389,7 +389,9 @@ int inav_parameters_init(struct position_estimator_inav_param_handles *h)
 	h->enable_lidar_alt_est = param_find("INAV_LIDAR_EST");
 	h->lidar_calibration_offset = param_find("INAV_LIDAR_OFF");
 	h->att_ext_hdg_m = param_find("ATT_EXT_HDG_M");
-
+#if __DAVID_DISTANCE__
+	h->sensor_id = param_find("SENSOR_ID_USE");
+#endif/*__DAVID_DISTANCE__*/
 	return 0;
 }
 
@@ -424,6 +426,9 @@ int inav_parameters_update(const struct position_estimator_inav_param_handles *h
 	param_get(h->enable_lidar_alt_est, &(p->enable_lidar_alt_est));
 	param_get(h->lidar_calibration_offset, &(p->lidar_calibration_offset));
 	param_get(h->att_ext_hdg_m, &(p->att_ext_hdg_m));
+#if __DAVID_DISTANCE__
+	param_get(h->sensor_id, &(p->sensor_id));
+#endif/*__DAVID_DISTANCE__*/
 
 	return 0;
 }

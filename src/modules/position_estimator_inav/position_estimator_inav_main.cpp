@@ -1339,14 +1339,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.y = y_est[0];
 			local_pos.vy = y_est[1];
 #if __DAVID_DISTANCE__
-		//	printf("aalidar.id  %d lidar.current_distance %.2f \n",lidar.id,(double)lidar.current_distance);
-									
+//			PX4FLOW_WARNX((nullptr,"params.sensor_id %d",params.sensor_id));
 			if(_control_mode_s.flag_sonic_sensor)
 			{	//printf("bblidar.id  %d lidar.current_distance %.2f \n",lidar.id,(double)lidar.current_distance);
-				if(lidar.id ==2){
+				if(lidar.id == params.sensor_id){
 					local_pos.z = lidar.current_distance;
 					local_pos.distace_sensor_ok = true;
-					
 				}
 			}else{
 				local_pos.z = z_est[0];

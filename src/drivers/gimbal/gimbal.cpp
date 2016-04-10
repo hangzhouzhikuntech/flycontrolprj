@@ -463,7 +463,6 @@ Gimbal::cycle()
 		}
 
 	}
-
 	if (_control_cmd_set) {
 
 		unsigned mountMode = _control_cmd.param7;

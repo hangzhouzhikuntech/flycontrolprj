@@ -22,6 +22,7 @@
 
 #define  __DEBUG__								(0)
 #define __DAVID_DISTANCE__						(1)
+#define __DAVID_DISTANCE_FIX__					(1)
 #define __DAVID_MANUAL__						(1)
 #define __DAVID_NAV_LOG__  						(1)
 #define __DAVID_YAW_FIX__  						(1)

@@ -624,7 +624,15 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 				break;
 
 			case vehicle_status_s::MAIN_STATE_ALTCTL:
+#if __DAVID_DISTANCE_FIX__
+				if(status->distance_sensor_ok){
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+				}else{
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+				}
+#else/*__DAVID_DISTANCE_FIX__*/
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+#endif/*__DAVID_DISTANCE_FIX__*/
 				break;
 
 			case vehicle_status_s::MAIN_STATE_POSCTL:

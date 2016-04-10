@@ -161,4 +161,5 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 		.masks  = GTIM_SR_CC3IF | GTIM_SR_CC3OF
 	}
 #endif/*__FMU_CONFIG__*/
+		
 };
