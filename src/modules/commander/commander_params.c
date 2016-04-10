@@ -326,3 +326,17 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
  */
 PARAM_DEFINE_INT32(SENSOR_ID_USE, 0);
 #endif/*__DAVID_DISTANCE__*/
+#if __DAVID_DISTANCE_FIX__
+/**
+ * ultra_sonar switch height
+ *
+ * ultra_sonar switch height threshold.
+ *
+ * @group Commander
+ * @unit meter
+ * @min 0
+ * @max 5
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(SONAR_SWITCH, 1.5f);
+#endif/*__DAVID_DISTANCE_FIX__*/

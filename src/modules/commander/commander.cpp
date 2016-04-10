@@ -1070,6 +1070,9 @@ int commander_thread_main(int argc, char *argv[])
 #if __DAVID_DISTANCE__
 	param_t _param_sensor_id= param_find("SENSOR_ID_USE");
 #endif/*__DAVID_DISTANCE__*/
+#if __DAVID_DISTANCE_FIX__
+	param_t _param_sonar_switch= param_find("SONAR_SWITCH");
+#endif/*__DAVID_DISTANCE_FIX__*/
 
 	// These are too verbose, but we will retain them a little longer
 	// until we are sure we really don't need them.
@@ -1438,6 +1441,9 @@ int commander_thread_main(int argc, char *argv[])
 #if __DAVID_DISTANCE__
 	int32_t	sensor_id;
 #endif/*__DAVID_DISTANCE__*/
+#if __DAVID_DISTANCE_FIX__
+	float sonar_switch;
+#endif/*__DAVID_DISTANCE_FIX__*/
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
@@ -1530,6 +1536,9 @@ int commander_thread_main(int argc, char *argv[])
 #if __DAVID_DISTANCE__
 			param_get(_param_sensor_id, &sensor_id);
 #endif/*__DAVID_DISTANCE__*/
+#if __DAVID_DISTANCE_FIX__
+			param_get(_param_sonar_switch, &sonar_switch);
+#endif/*__DAVID_DISTANCE_FIX__*/
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
@@ -2079,7 +2088,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_check(distance_sensor_sub, &updated);
 			if(updated){
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &distance_sensor_rece);
-				if(distance_sensor_rece.id == sensor_id &&distance_sensor_rece.current_distance<2.0f && distance_sensor_rece.current_distance>0.0f)
+				if(distance_sensor_rece.id == sensor_id &&distance_sensor_rece.current_distance< sonar_switch && distance_sensor_rece.current_distance>0.0f)
 				{
 					status.distance_sensor_ok = true;
 				}else{
