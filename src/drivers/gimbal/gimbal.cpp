@@ -322,7 +322,7 @@ Gimbal::cycle()
 		struct actuator_controls_s zero_report;
 		memset(&zero_report, 0, sizeof(zero_report));
 		zero_report.timestamp = hrt_absolute_time();
-		_actuator_controls_2_topic = orb_advertise(ORB_ID(actuator_controls_2), &zero_report);
+        _actuator_controls_2_topic = orb_advertise(ORB_ID(actuator_controls_3), &zero_report);
 
 		if (_actuator_controls_2_topic == nullptr) {
 			warnx("advert err");
@@ -463,8 +463,10 @@ Gimbal::cycle()
 		}
 
 	}
-	if (_control_cmd_set) {
 
+    unsigned data_type = 0;
+	if (_control_cmd_set) {
+        _control_cmd_set = false;
 		unsigned mountMode = _control_cmd.param7;
 		DEVICE_DEBUG("control_cmd: %d, mountMode %d | param1: %8.4f param2: %8.4f", _control_cmd.command, mountMode,
 			     (double)_control_cmd.param1, (double)_control_cmd.param2);
@@ -472,11 +474,14 @@ Gimbal::cycle()
 		if (_control_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL &&
 		    mountMode == vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
 			/* Convert to range -1 ... 1, which corresponds to -180deg ... 180deg */
-			roll += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param1;
-			pitch += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param2;
-			yaw += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param3;
+            //add by xuzhitong
+            data_type = _control_cmd.param6;
+            roll += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param1;
+            pitch += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param2;
+            yaw += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param3;
+            //PX4FLOW_WARNX((nullptr,"_control_cmd.param1 :%.2f,roll:%.2f",(double)_control_cmd.param1,(double)roll));
+            updated = true;
 
-			updated = true;
 		}
 
 		if (_control_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT &&
@@ -515,22 +520,26 @@ Gimbal::cycle()
 		}
 	}
 
-	if (updated) {
-
-		struct actuator_controls_s controls;
+    if (updated)
+    {
+        struct actuator_controls_s controls;
 
 		// DEVICE_DEBUG("publishing | roll: %8.4f pitch: %8.4f yaw: %8.4f", (double)roll, (double)pitch, (double)yaw);
 
 		/* fill in the final control values */
 		controls.timestamp = hrt_absolute_time();
-		controls.control[0] = roll;
-		controls.control[1] = pitch;
-		controls.control[2] = yaw;
-		//controls.control[3] = ; // camera shutter
-		controls.control[4] = out_mount_mode;
-
+        //uint32_t timeinterval = controls.timestamp - _last_time_stamp;
+        controls.control[0] = roll;
+        controls.control[1] = pitch;
+        controls.control[2] = yaw;
+        controls.control[4] = out_mount_mode;
+#if __FMU_PMW_YUNTAI__
+        controls.control[3] = 0x10; // camera shutter
+        controls.control[5] = data_type;
+#endif
 		/* publish it */
-		orb_publish(ORB_ID(actuator_controls_2), _actuator_controls_2_topic, &controls);
+        //PX4FLOW_WARNX((nullptr,"gimabl publish roll:%.3f",(double)controls.control[0]));
+        orb_publish(ORB_ID(actuator_controls_3), _actuator_controls_2_topic, &controls);
 
 	}
 

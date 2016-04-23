@@ -214,8 +214,25 @@ private:
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
 
+    //add by xuzhitong
+#if __FMU_PMW_YUNTAI__
+    unsigned  _roll_pwm;
+    unsigned _pitch_pwm;
+    unsigned _yaw_pwm;
+    float _roll_config;
+    float _pitch_config;
+    float _yaw_config;
+    uint64_t _last_time_stamp;
+    bool _adjust_status;
+    int _adjust_type;
+#endif
+
 	static bool	arm_nothrottle() { return (_armed.prearmed && !_armed.armed); }
 
+    //add by xuzhitong
+    #if __FMU_PMW_YUNTAI__
+    void update_gimbal_data(int data_type);
+#endif
 	static void	cycle_trampoline(void *arg);
 	void		cycle();
 	void		work_start();
@@ -382,7 +399,18 @@ PX4FMU::PX4FMU() :
 	_disarmed_pwm{0},
 	_reverse_pwm_mask(0),
 	_num_failsafe_set(0),
-	_num_disarmed_set(0)
+    _num_disarmed_set(0),
+    #if __FMU_PMW_YUNTAI__
+    _roll_pwm(1500),
+    _pitch_pwm(1500),
+    _yaw_pwm(1500),
+    _roll_config(0.0f),
+    _pitch_config(0.0f),
+    _yaw_config(0.0f),
+    _last_time_stamp(0),
+    _adjust_status(false),
+    _adjust_type(0)
+  #endif
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -408,6 +436,11 @@ PX4FMU::PX4FMU() :
 
 	/* only enable this during development */
 	_debug_enabled = false;
+
+    //add by xuzhitong
+#if __FMU_PMW_YUNTAI__
+    _last_time_stamp = hrt_absolute_time();
+#endif
 }
 
 PX4FMU::~PX4FMU()
@@ -814,6 +847,99 @@ PX4FMU::update_pwm_out_state(bool on)
 	up_pwm_servo_arm(on);
 }
 
+enum GIMBAL_DATA_TYPE
+{
+    GIMBAL_DATA_TYPE_ROLL = 0,
+    GIMBAL_DATA_TYPE_PITCH,
+    GIMBAL_DATA_TYPE_YAW
+};
+enum GIMBAL_OUTPUT_CHANNEL
+{
+    GIMBAL_OUTPUT_CHANNEL_ROLL = 0,
+    GIMBAL_OUTPUT_CHANNEL_PITCH,
+    GIMBAL_OUTPUT_CHANNEL_YAW
+};
+#if __FMU_PMW_YUNTAI__
+void
+PX4FMU::update_gimbal_data(int data_type)
+{
+    uint16_t pwm_limited[3];
+    float * data_config = nullptr;
+    unsigned * data_pwm = nullptr;
+    unsigned output_channel = 0xff;
+    printf("update_gimbal_data data type:%d,_adjust_status:%d\r\n",data_type,_adjust_status);
+    switch (data_type)
+    {
+        case GIMBAL_DATA_TYPE_ROLL:
+        {
+            data_config = &_roll_config;
+            data_pwm = &_roll_pwm;
+            output_channel = GIMBAL_OUTPUT_CHANNEL_ROLL;
+            break;
+        }
+        case GIMBAL_DATA_TYPE_PITCH:
+        {
+            data_config = &_pitch_config;
+            data_pwm = &_pitch_pwm;
+            output_channel = GIMBAL_OUTPUT_CHANNEL_PITCH;
+            break;
+        }
+        case GIMBAL_DATA_TYPE_YAW:
+        {
+            data_config = &_yaw_config;
+            data_pwm = &_yaw_pwm;
+            output_channel = GIMBAL_OUTPUT_CHANNEL_YAW;
+            break;
+        }
+        default:
+        {
+            return;
+        }
+    }
+    //PX4FLOW_WARNX((nullptr,"_roll_config = %.8f,_adjust_status = %d",(double)(*data_config),_adjust_status));
+    if (_adjust_status)
+    {
+
+        //for(unsigned i = 0; i < 3; i++){
+        uint64_t time_interval = hrt_absolute_time() - _last_time_stamp;
+        float roll_increment = 1;
+        if (*data_config < -1e-8f)
+        {
+            roll_increment = -1;
+        }
+        roll_increment *=  time_interval * 1e-6f * 1000;
+        int roll_target = 1500 + (*data_config) * 1000;
+        if (((*data_config) > 1e-8f &&(*data_pwm) < roll_target) || ((*data_config) < 1e-8f && (*data_pwm)  > roll_target))
+        {
+            (*data_pwm) += roll_increment;
+        }
+        else
+        {
+            (*data_pwm) = roll_target;
+            _adjust_status = false;
+        }
+
+        PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f,time_interval = %lld,roll_increment = %.2f,roll_target = %d",(double)_roll_pwm,time_interval,(double)roll_increment,roll_target));
+
+        if((*data_pwm) > 2000){(*data_pwm) = 2000;};
+        if((*data_pwm) <1000){(*data_pwm) = 1000;};
+        pwm_output_set(output_channel, (*data_pwm));
+        pwm_limited[0] = (*data_pwm);
+        publish_pwm_outputs(pwm_limited, 1);
+    }
+
+    /*if (!_adjust_status && (*data_pwm) != 0)
+    {
+        //PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f",(double)_roll_pwm));
+        if((*data_pwm) > 2000){(*data_pwm) = 2000;};
+        if((*data_pwm) <1000){(*data_pwm) = 1000;};
+        pwm_output_set(output_channel, (*data_pwm));
+        pwm_limited[0] = (*data_pwm);
+        publish_pwm_outputs(pwm_limited, 1);
+    }*/
+
+}
+#endif
 void
 PX4FMU::cycle()
 {
@@ -844,7 +970,9 @@ PX4FMU::cycle()
 		stm32_configgpio(_gpio_tab[0].output);
 		stm32_configgpio(_gpio_tab[1].output);
 #endif/*__FMU_CONFIG__*/
-
+        _adjust_status = false;
+        _roll_config = 0.0f;
+        _roll_pwm = 0;
 		_initialized = true;
 	}
 
@@ -907,7 +1035,7 @@ PX4FMU::cycle()
 
 		/* get controls for required topics */
 		unsigned poll_id = 0;
-
+        memset(_controls,0,sizeof(_controls[0])*(actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS));
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 			if (_control_subs[i] > 0) {
 				if (_poll_fds[poll_id].revents & POLLIN) {
@@ -928,30 +1056,20 @@ PX4FMU::cycle()
 				}
 				poll_id++;
 			}
-		}
+        }//end for
 #if __FMU_PMW_YUNTAI__
-		PX4FLOW_WARNX((nullptr,"controls[1].control[i] %.2f  %.2f  %.2f",(double)_controls[1].control[0],(double)_controls[1].control[1],(double)_controls[1].control[2]));
-		for(unsigned i = 0; i < 3; i++){
-			_pwm_limited = _controls[1].control[i] * (_max_pwm_a - _ramp_min_pwm) / 2 + (_max_pwm_a + _ramp_min_pwm) / 2;
-			if(_pwm_limited >2000){_pwm_limited = 2000;};
-			if(_pwm_limited <1000){_pwm_limited = 1000;};
-			pwm_output_set(i, _pwm_limited);
-		}
+        //printf("poll read controls:%.2f,%.2f,%.2f\r\n",(double)_controls[3].control[0],(double)_controls[3].control[3],(double)_controls[3].control[4]);
+        if ((int)_controls[3].control[3] == 0x10)
+        {
 
-		
-	//	pwm_limited = _controls[1].control[0] * (max_pwm_a - ramp_min_pwm) / 2 + (max_pwm_a + ramp_min_pwm) / 2;
-	//	if(pwm_limited >2000){pwm_limited = 2000;};
-	//	if(pwm_limited <1000){pwm_limited = 1000;};
-		/* output to the servos */
-		//for (size_t i = 0; i < num_outputs; i++) {
-		//pwm_output_set(0, pwm_limited);
-		//pwm_output_set(1, pwm_limited);
-		//pwm_output_set(2, pwm_limited);
-		//pwm_output_set(3, pwm_limited);
-		//}
-		//publish_pwm_outputs(pwm_limited, num_outputs);
-				
-#endif/*__FMU_PMW_YUNTAI__*/
+            _roll_config = _controls[3].control[0];
+            _pitch_config = _controls[3].control[1];
+            _yaw_config = _controls[3].control[2];
+            _adjust_type = _controls[3].control[5];
+            _adjust_status = true;
+        }
+
+#else
 
 
 		/* can we mix? */
@@ -1010,11 +1128,17 @@ PX4FMU::cycle()
 			}
 
 			publish_pwm_outputs(pwm_limited, num_outputs);
-		}
-	}
-		
 
+        }//end if
+        #endif
+    }//end poll
+    //add by xuzhitong
+#if __FMU_PMW_YUNTAI__
+    //for (int data_type_index = GIMBAL_DATA_TYPE_ROLL;data_type_index <= GIMBAL_DATA_TYPE_YAW;data_type_index++)
+        update_gimbal_data(_adjust_type);
 
+    _last_time_stamp = hrt_absolute_time();
+#endif
 	/* check arming state */
 	bool updated = false;
 	orb_check(_armed_sub, &updated);
