@@ -901,23 +901,33 @@ PX4FMU::update_gimbal_data(int data_type)
     if (_adjust_status)
     {
 
-        //for(unsigned i = 0; i < 3; i++){
-        uint64_t time_interval = hrt_absolute_time() - _last_time_stamp;
-        float roll_increment = 1;
-        if (*data_config < -1e-8f)
+        if (GIMBAL_DATA_TYPE_YAW == data_type)
         {
-            roll_increment = -1;
-        }
-        roll_increment *=  time_interval * 1e-6f * 1000;
-        int roll_target = 1500 + (*data_config) * 1000;
-        if (((*data_config) > 1e-8f &&(*data_pwm) < roll_target) || ((*data_config) < 1e-8f && (*data_pwm)  > roll_target))
-        {
-            (*data_pwm) += roll_increment;
+            (*data_pwm) = 1500 + (*data_config)*1000;
+            _adjust_status = false;
+            PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f",(double)(*data_pwm)));
         }
         else
         {
-            (*data_pwm) = roll_target;
-            _adjust_status = false;
+            //for(unsigned i = 0; i < 3; i++){
+            uint64_t time_interval = hrt_absolute_time() - _last_time_stamp;
+            float roll_increment = 1;
+            if (*data_config < -1e-8f)
+            {
+                roll_increment = -1;
+            }
+            roll_increment *=  time_interval * 1e-6f * 1000;
+            int roll_target = 1500 + (*data_config) * 1000;
+            if (((*data_config) > 1e-8f &&(*data_pwm) < roll_target) || ((*data_config) < 1e-8f && (*data_pwm)  > roll_target))
+            {
+                (*data_pwm) += roll_increment;
+            }
+            else
+            {
+                (*data_pwm) = roll_target;
+                _adjust_status = false;
+            }
+            PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f,roll_increment = %.2f,roll_target = %d",(double)(*data_pwm),(double)roll_increment,roll_target));
         }
 
        // PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f,time_interval = %lld,roll_increment = %.2f,roll_target = %d",(double)_roll_pwm,time_interval,(double)roll_increment,roll_target));
