@@ -1289,6 +1289,7 @@ MulticopterPositionControl::task_main()
 #if __DAVID_YAW_FIX__
 		if(_manual.z>0.6f && _control_flag ==false){
 			_control_flag = true;
+			reset_yaw_sp = true;
 		}
 		if(!_arming.armed){_control_flag = false;}
 #endif/*__DAVID_YAW_FIX__*/
