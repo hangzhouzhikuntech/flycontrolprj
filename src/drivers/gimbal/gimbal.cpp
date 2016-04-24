@@ -205,9 +205,15 @@ Gimbal::Gimbal() :
 	_vehicle_control_mode_sub(-1),
 	_manual_control_sub(-1),
 	_params_sub(-1),
+#if __FMU_PMW_YUNTAI__
+	_attitude_compensation_roll(false),
+	_attitude_compensation_pitch(false),
+	_attitude_compensation_yaw(false),
+#else/*__FMU_PMW_YUNTAI__*/
 	_attitude_compensation_roll(true),
 	_attitude_compensation_pitch(true),
 	_attitude_compensation_yaw(true),
+#endif/*__FMU_PMW_YUNTAI__*/	
 	_initialized(false),
 	_actuator_controls_2_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "gimbal_read")),
@@ -444,9 +450,7 @@ Gimbal::cycle()
 			_config_cmd_set = true;
 
 		}
-
 	}
-
 	if (_config_cmd_set) {
 
 		_config_cmd_set = false;
@@ -538,7 +542,6 @@ Gimbal::cycle()
         controls.control[5] = data_type;
 #endif
 		/* publish it */
-        //PX4FLOW_WARNX((nullptr,"gimabl publish roll:%.3f",(double)controls.control[0]));
         orb_publish(ORB_ID(actuator_controls_3), _actuator_controls_2_topic, &controls);
 
 	}

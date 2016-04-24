@@ -867,8 +867,10 @@ PX4FMU::update_gimbal_data(int data_type)
     float * data_config = nullptr;
     unsigned * data_pwm = nullptr;
     unsigned output_channel = 0xff;
-    printf("update_gimbal_data data type:%d,_adjust_status:%d\r\n",data_type,_adjust_status);
-    switch (data_type)
+
+//	printf("update_gimbal_data data type:%d,_adjust_status:%d\r\n",data_type,_adjust_status);
+
+	switch (data_type)
     {
         case GIMBAL_DATA_TYPE_ROLL:
         {
@@ -896,7 +898,6 @@ PX4FMU::update_gimbal_data(int data_type)
             return;
         }
     }
-    //PX4FLOW_WARNX((nullptr,"_roll_config = %.8f,_adjust_status = %d",(double)(*data_config),_adjust_status));
     if (_adjust_status)
     {
 
@@ -919,7 +920,7 @@ PX4FMU::update_gimbal_data(int data_type)
             _adjust_status = false;
         }
 
-        PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f,time_interval = %lld,roll_increment = %.2f,roll_target = %d",(double)_roll_pwm,time_interval,(double)roll_increment,roll_target));
+       // PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f,time_interval = %lld,roll_increment = %.2f,roll_target = %d",(double)_roll_pwm,time_interval,(double)roll_increment,roll_target));
 
         if((*data_pwm) > 2000){(*data_pwm) = 2000;};
         if((*data_pwm) <1000){(*data_pwm) = 1000;};
@@ -1058,7 +1059,6 @@ PX4FMU::cycle()
 			}
         }//end for
 #if __FMU_PMW_YUNTAI__
-        //printf("poll read controls:%.2f,%.2f,%.2f\r\n",(double)_controls[3].control[0],(double)_controls[3].control[3],(double)_controls[3].control[4]);
         if ((int)_controls[3].control[3] == 0x10)
         {
 
@@ -1162,7 +1162,6 @@ PX4FMU::cycle()
 		orb_check(_command_sub, &updated);
 		if(updated){
 			orb_copy(ORB_ID(vehicle_command), _command_sub, &_com_rece);
-			PX4FLOW_WARNX((nullptr,"_com_rece.command %.2f",(double)_com_rece.command));
 
 			if(_com_rece.command == 253){
 				if((int)_com_rece.param2==2){
