@@ -66,6 +66,12 @@
 #include <systemlib/perf_counter.h>
 
 #include <uORB/topics/system_power.h>
+#include "qiaoliang/qiaoliang_define.h"
+
+#if __PRESSURE__
+#include <uORB/topics/pressure.h>
+#endif/*__PRESSURE__*/
+
 
 /*
  * Register accessors.
@@ -122,6 +128,9 @@ private:
 	unsigned		_channel_count;
 	adc_msg_s		*_samples;		/**< sample buffer */
 
+#if __PRESSURE__
+	orb_advert_t		_to_pressure;
+#endif/*__PRESSURE__*/
 	orb_advert_t		_to_system_power;
 
 	/** work trampoline */
@@ -141,6 +150,11 @@ private:
 
 	// update system_power ORB topic, only on FMUv2
 	void update_system_power(void);
+
+#if __PRESSURE__
+	void update_pressure(void);
+#endif/*__PRESSURE__*/
+	
 };
 
 ADC::ADC(uint32_t channels) :
@@ -148,6 +162,9 @@ ADC::ADC(uint32_t channels) :
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr),
+#if __PRESSURE__
+	_to_pressure(nullptr),
+#endif/*__PRESSURE__*/
 	_to_system_power(nullptr)
 {
 	_debug_enabled = true;
@@ -308,6 +325,9 @@ ADC::_tick()
 		_samples[i].am_data = _sample(_samples[i].am_channel);
 	}
 
+#if __PRESSURE__
+	update_pressure();
+#endif/*__PRESSURE__*/
 	update_system_power();
 }
 
@@ -384,6 +404,27 @@ ADC::update_system_power(void)
 #endif // CONFIG_ARCH_BOARD_PX4FMU_V4
 }
 
+
+#if __PRESSURE__
+void
+ADC::update_pressure(void)
+{
+	pressure_s _pre_t;
+
+	_pre_t.timestamp = hrt_absolute_time();
+	_pre_t.pressure_1 = _samples[7].am_data;
+
+//PX4FLOW_WARNX((nullptr,"_pre_t.pressure_1  %u",_pre_t.pressure_1 ));
+	if (_to_pressure != nullptr) {
+		orb_publish(ORB_ID(pressure), _to_pressure, &_pre_t);
+
+	} else {
+		_to_pressure = orb_advertise(ORB_ID(pressure), &_pre_t);
+	}
+
+}
+#endif/*__PRESSURE__*/
+
 uint16_t
 ADC::_sample(unsigned channel)
 {
@@ -447,7 +488,7 @@ test(void)
 		unsigned channels = count / sizeof(data[0]);
 
 		for (unsigned j = 0; j < channels; j++) {
-			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
+			printf("%d-%u-%d;", data[j].am_channel, data[j].am_data,j);
 		}
 
 		printf("\n");

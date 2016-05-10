@@ -88,6 +88,10 @@
 #include <controllib/block/BlockParam.hpp>
 #include "qiaoliang/qiaoliang_define.h"
 
+#if __PRESSURE__
+#include <uORB/topics/pressure.h>
+#endif/*__PRESSURE__*/
+
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
@@ -139,6 +143,10 @@ private:
 	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
 
+#if __PRESSURE__
+	int 	_pressue_sp_sub; 	
+#endif/*__PRESSURE__*/
+
 #if __DAVID_DISTANCE__
 	float	_init_dis;
 	bool	_init_judge;
@@ -162,6 +170,9 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
+#if __PRESSURE__
+	struct pressure_s	_pressure_sp; 	/**< vehicle global velocity setpoint */
+#endif/*__PRESSURE__*/
 
 
 	control::BlockParamFloat _manual_thr_min;
@@ -373,6 +384,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_global_vel_sp_sub(-1),
+#if __PRESSURE__
+	_pressue_sp_sub(-1),	
+#endif/*__PRESSURE__*/
 
 #if __DAVID_DISTANCE__
 	_init_dis(0),
@@ -670,6 +684,13 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	}
+
+#if __PRESSURE__
+	orb_check(_pressue_sp_sub, &updated);
+	if (updated) {
+		orb_copy(ORB_ID(pressure), _pressue_sp_sub, &_pressure_sp);
+	}
+#endif/*__PRESSURE__*/
 
 }
 
@@ -1175,6 +1196,9 @@ MulticopterPositionControl::task_main()
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
+#if __PRESSURE__
+	_pressue_sp_sub = orb_subscribe(ORB_ID(pressure));
+#endif/*__PRESSURE__*/
 
 
 	parameters_update(true);
@@ -1370,7 +1394,10 @@ MulticopterPositionControl::task_main()
 					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 				}
 
-			} else if (_control_mode.flag_control_manual_enabled
+			}
+#if __MC_POS_FIX__
+#else/*__MC_POS_FIX__*/
+			else if (_control_mode.flag_control_manual_enabled
 					&& _vehicle_status.condition_landed) {
 				/* don't run controller when landed */
 				_reset_pos_sp = true;
@@ -1398,7 +1425,9 @@ MulticopterPositionControl::task_main()
 					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 				}
 
-			} else {
+			}
+#endif/*__MC_POS_FIX__*/
+			else {
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 				if (_run_pos_control) {
 					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);

@@ -48,13 +48,22 @@
 MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle(),
 	_params(),
+#if __LAND_FIX__
+	_vehicleLocalSub(-1),
+#else
 	_vehicleGlobalPositionSub(-1),
+#endif/*__LAND_FIX__*/
 	_vehicleStatusSub(-1),
 	_actuatorsSub(-1),
 	_armingSub(-1),
 	_parameterSub(-1),
 	_attitudeSub(-1),
+#if __LAND_FIX__
+	_update(0),
+	_vehicleLocal{},
+#else/*__LAND_FIX__*/
 	_vehicleGlobalPosition{},
+#endif/*__LAND_FIX__*/
 	_vehicleStatus{},
 	_actuators{},
 	_arming{},
@@ -70,7 +79,11 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 void MulticopterLandDetector::initialize()
 {
 	// subscribe to position, attitude, arming and velocity changes
+#if __LAND_FIX__
+	_vehicleLocalSub = orb_subscribe(ORB_ID(vehicle_local_position));
+#else
 	_vehicleGlobalPositionSub = orb_subscribe(ORB_ID(vehicle_global_position));
+#endif/*__LAND_FIX__*/
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_vehicleStatusSub = orb_subscribe(ORB_ID(vehicle_status));
 	_actuatorsSub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
@@ -83,7 +96,18 @@ void MulticopterLandDetector::initialize()
 
 void MulticopterLandDetector::updateSubscriptions()
 {
+#if __LAND_FIX__
+	orb_check(_vehicleLocalSub,&_update);
+	if(_update){
+		orb_copy(ORB_ID(vehicle_local_position),_vehicleLocalSub, &_vehicleLocal);
+		if(!_vehicleLocal.xy_valid){
+			_vehicleLocal.vx = 0;
+			_vehicleLocal.vy = 0;
+		}
+	}
+#else/*__LAND_FIX__*/
 	orb_update(ORB_ID(vehicle_global_position), _vehicleGlobalPositionSub, &_vehicleGlobalPosition);
+#endif/*__LAND_FIX__*/
 	orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
 	orb_update(ORB_ID(vehicle_status), _vehicleStatusSub, &_vehicleStatus);
 	orb_update(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuatorsSub, &_actuators);
@@ -110,7 +134,8 @@ bool MulticopterLandDetector::get_landed_state()
 	} else if (_arming_time == 0) {
 		_arming_time = hrt_absolute_time();
 	}
-
+#if __LAND_FIX__
+#else
 	// return status based on armed state if no position lock is available
 	if (_vehicleGlobalPosition.timestamp == 0 ||
 	    hrt_elapsed_time(&_vehicleGlobalPosition.timestamp) > 500000) {
@@ -118,7 +143,7 @@ bool MulticopterLandDetector::get_landed_state()
 		// no position lock - not landed if armed
 		return !_arming.armed;
 	}
-
+#endif/*__LAND_FIX__*/
 	const uint64_t now = hrt_absolute_time();
 
 	float armThresholdFactor = 1.0f;
@@ -132,12 +157,20 @@ bool MulticopterLandDetector::get_landed_state()
 	// check if we are moving vertically - this might see a spike after arming due to
 	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
 	// an accurate in-air indication
+#if __LAND_FIX__
+
+		// check if we are moving vertically
+	bool verticalMovement = fabsf(_vehicleLocal.vz) > _params.maxClimbRate;
+	// check if we are moving horizontally
+	bool horizontalMovement = sqrtf(_vehicleLocal.vx * _vehicleLocal.vx + _vehicleLocal.vy * _vehicleLocal.vy) > _params.maxVelocity;
+#else/*__LAND_FIX__*/
 	bool verticalMovement = fabsf(_vehicleGlobalPosition.vel_d) > _params.maxClimbRate * armThresholdFactor;
 
 	// check if we are moving horizontally
 	bool horizontalMovement = sqrtf(_vehicleGlobalPosition.vel_n * _vehicleGlobalPosition.vel_n
 					+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > _params.maxVelocity
 				  && _vehicleStatus.condition_global_position_valid;
+#endif/*__LAND_FIX__*/
 
 	// next look if all rotation angles are not moving
 	float maxRotationScaled = _params.maxRotation * armThresholdFactor;

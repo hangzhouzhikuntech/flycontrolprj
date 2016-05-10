@@ -33,6 +33,17 @@
 
 #define __FMU_CONFIG__  						(1)
 #define __FMU_PMW_YUNTAI__ 						(1)
+#define __MC_POS_FIX__ 							(1)
+#define __LAND_FIX__ 							(0)
+
+
+
+#define __PRESSURE__ 							(0)
+
+
+
+
+#define __RC_LOSS_TEST__ 						(0)
 
 
 #if __DEBUG__

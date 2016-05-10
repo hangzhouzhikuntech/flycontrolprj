@@ -51,6 +51,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
 
+#include "qiaoliang/qiaoliang_define.h"
+
 class MulticopterLandDetector : public LandDetector
 {
 public:
@@ -102,14 +104,23 @@ private:
 	} _params;
 
 private:
+#if __LAND_FIX__
+	int _vehicleLocalSub;
+#else
 	int _vehicleGlobalPositionSub;						/**< notification of global position */
+#endif/*__LAND_FIX__*/
 	int _vehicleStatusSub;
 	int _actuatorsSub;
 	int _armingSub;
 	int _parameterSub;
 	int _attitudeSub;
+#if __LAND_FIX__
+	bool _update;
+	struct vehicle_local_position_s 			_vehicleLocal;	
+#else
+	struct vehicle_global_position_s	_vehicleGlobalPosition; 	/**< the result from global position subscription */
+#endif/*__LAND_FIX__*/
 
-	struct vehicle_global_position_s	_vehicleGlobalPosition;		/**< the result from global position subscription */
 	struct vehicle_status_s 		_vehicleStatus;
 	struct actuator_controls_s		_actuators;
 	struct actuator_armed_s			_arming;

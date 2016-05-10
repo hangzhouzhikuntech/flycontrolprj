@@ -44,6 +44,7 @@
 #include <px4_config.h>
 
 #include <drivers/drv_orb_dev.h>
+#include "qiaoliang/qiaoliang_define.h"
 
 #include "topics/sensor_mag.h"
 ORB_DEFINE(sensor_mag, struct sensor_mag_s);
@@ -276,3 +277,8 @@ ORB_DEFINE(vehicle_command_ack, struct vehicle_command_ack_s);
 
 #include "topics/ekf2_innovations.h"
 ORB_DEFINE(ekf2_innovations, struct ekf2_innovations_s);
+
+#if __PRESSURE__
+#include "topics/pressure.h"
+ORB_DEFINE(pressure, struct pressure_s);
+#endif/*__PRESSURE__*/
