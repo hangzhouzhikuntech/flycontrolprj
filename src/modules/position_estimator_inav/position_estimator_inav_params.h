@@ -73,7 +73,11 @@ struct position_estimator_inav_params {
 	int32_t att_ext_hdg_m;
 #if __DAVID_DISTANCE__
 	int32_t sensor_id;
-#endif/*__DAVID_DISTANCE__*/	
+#endif/*__DAVID_DISTANCE__*/
+#if __RC_LOSS_TEST__
+	float loss_epvh;
+#endif/*__RC_LOSS_TEST__*/
+
 };
 
 struct position_estimator_inav_param_handles {
@@ -108,6 +112,10 @@ struct position_estimator_inav_param_handles {
 #if __DAVID_DISTANCE__
 	param_t sensor_id;
 #endif/*__DAVID_DISTANCE__*/
+#if __RC_LOSS_TEST__
+	param_t loss_epvh;
+#endif/*__RC_LOSS_TEST__*/
+
 };
 
 #define CBRK_NO_VISION_KEY	328754

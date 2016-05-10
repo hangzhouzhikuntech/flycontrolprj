@@ -301,6 +301,20 @@ PARAM_DEFINE_FLOAT(INAV_FLOW_DIST_X, 0.0f);
  */
 PARAM_DEFINE_FLOAT(INAV_FLOW_DIST_Y, 0.0f);
 
+#if __RC_LOSS_TEST__
+/**
+ * __RC_LOSS_TEST__
+ *
+ * set rc_loss epv_eph
+ *
+ * @min 0
+ * @max 2000
+ * @group Position Estimator INAV
+ */
+PARAM_DEFINE_FLOAT(LOSS_EPVH, 0.0f);
+#endif/*__RC_LOSS_TEST__*/
+
+
 /**
  * Disable mocap (set 0 if using fake gps)
  *
@@ -359,6 +373,8 @@ PARAM_DEFINE_INT32(CBRK_NO_VISION, 0);
  */
 PARAM_DEFINE_INT32(INAV_ENABLED, 1);
 
+
+
 int inav_parameters_init(struct position_estimator_inav_param_handles *h)
 {
 	h->w_z_baro = param_find("INAV_W_Z_BARO");
@@ -392,6 +408,10 @@ int inav_parameters_init(struct position_estimator_inav_param_handles *h)
 #if __DAVID_DISTANCE__
 	h->sensor_id = param_find("SENSOR_ID_USE");
 #endif/*__DAVID_DISTANCE__*/
+#if __RC_LOSS_TEST__
+	h->loss_epvh = param_find("LOSS_EPVH");
+#endif/*__RC_LOSS_TEST__*/
+
 	return 0;
 }
 
@@ -429,6 +449,9 @@ int inav_parameters_update(const struct position_estimator_inav_param_handles *h
 #if __DAVID_DISTANCE__
 	param_get(h->sensor_id, &(p->sensor_id));
 #endif/*__DAVID_DISTANCE__*/
-
+#if __RC_LOSS_TEST__
+	param_get(h->loss_epvh, &(p->loss_epvh));
+#endif/*__RC_LOSS_TEST__*/
 	return 0;
+
 }

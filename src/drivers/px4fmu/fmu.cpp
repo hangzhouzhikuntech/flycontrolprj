@@ -399,8 +399,9 @@ PX4FMU::PX4FMU() :
 	_disarmed_pwm{0},
 	_reverse_pwm_mask(0),
 	_num_failsafe_set(0),
+
+#if __FMU_PMW_YUNTAI__
     _num_disarmed_set(0),
-    #if __FMU_PMW_YUNTAI__
     _roll_pwm(1500),
     _pitch_pwm(1500),
     _yaw_pwm(1500),
@@ -410,7 +411,10 @@ PX4FMU::PX4FMU() :
     _last_time_stamp(0),
     _adjust_status(false),
     _adjust_type(0)
-  #endif
+#else
+	_num_disarmed_set(0)
+#endif
+
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -846,7 +850,8 @@ PX4FMU::update_pwm_out_state(bool on)
 
 	up_pwm_servo_arm(on);
 }
-
+    //add by xuzhitong
+#if __FMU_PMW_YUNTAI__
 enum GIMBAL_DATA_TYPE
 {
     GIMBAL_DATA_TYPE_ROLL = 0,
@@ -859,6 +864,8 @@ enum GIMBAL_OUTPUT_CHANNEL
     GIMBAL_OUTPUT_CHANNEL_PITCH,
     GIMBAL_OUTPUT_CHANNEL_YAW
 };
+#endif/*__FMU_PMW_YUNTAI__*/
+
 #if __FMU_PMW_YUNTAI__
 void
 PX4FMU::update_gimbal_data(int data_type)
@@ -900,7 +907,7 @@ PX4FMU::update_gimbal_data(int data_type)
     }
     if (_adjust_status)
     {
-
+#if __FMU_PMW_YUNTAI__
         if (GIMBAL_DATA_TYPE_YAW == data_type)
         {
             (*data_pwm) = 1500 + (*data_config)*1000;
@@ -909,6 +916,27 @@ PX4FMU::update_gimbal_data(int data_type)
         }
         else
         {
+        //for(unsigned i = 0; i < 3; i++){
+        uint64_t time_interval = hrt_absolute_time() - _last_time_stamp;
+        float roll_increment = 1;
+        if (*data_config < -1e-8f)
+        {
+            roll_increment = -1;
+        }
+        roll_increment *=  time_interval * 1e-6f * 1000;
+        int roll_target = 1500 + (*data_config) * 1000;
+        if (((*data_config) > 1e-8f &&(*data_pwm) < roll_target) || ((*data_config) < 1e-8f && (*data_pwm)  > roll_target))
+        {
+            (*data_pwm) += roll_increment;
+        }
+        else
+        {
+            (*data_pwm) = roll_target;
+            _adjust_status = false;
+            }
+            PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f,roll_increment = %.2f,roll_target = %d",(double)(*data_pwm),(double)roll_increment,roll_target));
+        }
+#else
             //for(unsigned i = 0; i < 3; i++){
             uint64_t time_interval = hrt_absolute_time() - _last_time_stamp;
             float roll_increment = 1;
@@ -927,11 +955,9 @@ PX4FMU::update_gimbal_data(int data_type)
                 (*data_pwm) = roll_target;
                 _adjust_status = false;
             }
-            PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f,roll_increment = %.2f,roll_target = %d",(double)(*data_pwm),(double)roll_increment,roll_target));
-        }
 
        // PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f,time_interval = %lld,roll_increment = %.2f,roll_target = %d",(double)_roll_pwm,time_interval,(double)roll_increment,roll_target));
-
+#endif
         if((*data_pwm) > 2000){(*data_pwm) = 2000;};
         if((*data_pwm) <1000){(*data_pwm) = 1000;};
         pwm_output_set(output_channel, (*data_pwm));
@@ -981,9 +1007,13 @@ PX4FMU::cycle()
 		stm32_configgpio(_gpio_tab[0].output);
 		stm32_configgpio(_gpio_tab[1].output);
 #endif/*__FMU_CONFIG__*/
+//add by xuzhitong
+#if __FMU_PMW_YUNTAI__
         _adjust_status = false;
         _roll_config = 0.0f;
         _roll_pwm = 0;
+#endif/*__FMU_PMW_YUNTAI__*/
+
 		_initialized = true;
 	}
 
@@ -1046,7 +1076,10 @@ PX4FMU::cycle()
 
 		/* get controls for required topics */
 		unsigned poll_id = 0;
+//add by zhitong
+#if __FMU_PMW_YUNTAI__		
         memset(_controls,0,sizeof(_controls[0])*(actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS));
+#endif/*__FMU_PMW_YUNTAI__*/
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 			if (_control_subs[i] > 0) {
 				if (_poll_fds[poll_id].revents & POLLIN) {
@@ -1145,9 +1178,9 @@ PX4FMU::cycle()
     //add by xuzhitong
 #if __FMU_PMW_YUNTAI__
     //for (int data_type_index = GIMBAL_DATA_TYPE_ROLL;data_type_index <= GIMBAL_DATA_TYPE_YAW;data_type_index++)
-        update_gimbal_data(_adjust_type);
-
+    update_gimbal_data(_adjust_type);
     _last_time_stamp = hrt_absolute_time();
+	
 #endif
 	/* check arming state */
 	bool updated = false;

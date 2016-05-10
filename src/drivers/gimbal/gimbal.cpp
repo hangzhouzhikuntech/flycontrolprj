@@ -328,8 +328,12 @@ Gimbal::cycle()
 		struct actuator_controls_s zero_report;
 		memset(&zero_report, 0, sizeof(zero_report));
 		zero_report.timestamp = hrt_absolute_time();
-        _actuator_controls_2_topic = orb_advertise(ORB_ID(actuator_controls_3), &zero_report);
-
+// add by zhitong
+#if __FMU_PMW_YUNTAI__
+		_actuator_controls_2_topic = orb_advertise(ORB_ID(actuator_controls_3), &zero_report);
+#else
+        _actuator_controls_2_topic = orb_advertise(ORB_ID(actuator_controls_2), &zero_report);
+#endif/*__FMU_PMW_YUNTAI__*/
 		if (_actuator_controls_2_topic == nullptr) {
 			warnx("advert err");
 		}
@@ -387,6 +391,7 @@ Gimbal::cycle()
 	if (_attitude_compensation_yaw) {
 		yaw = 1.0f / M_PI_F * att.yaw;
 		updated = true;
+		
 	}
 
 	/* Check manual input */
@@ -467,10 +472,16 @@ Gimbal::cycle()
 		}
 
 	}
-
+	// add by zhitong
+#if __FMU_PMW_YUNTAI__
     unsigned data_type = 0;
+#endif/*__FMU_PMW_YUNTAI__*/
+
 	if (_control_cmd_set) {
+	// add by zhitong
+#if __FMU_PMW_YUNTAI__		
         _control_cmd_set = false;
+#endif/*__FMU_PMW_YUNTAI__*/
 		unsigned mountMode = _control_cmd.param7;
 		DEVICE_DEBUG("control_cmd: %d, mountMode %d | param1: %8.4f param2: %8.4f", _control_cmd.command, mountMode,
 			     (double)_control_cmd.param1, (double)_control_cmd.param2);
@@ -479,13 +490,15 @@ Gimbal::cycle()
 		    mountMode == vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
 			/* Convert to range -1 ... 1, which corresponds to -180deg ... 180deg */
             //add by xuzhitong
+// add by zhitong
+#if __FMU_PMW_YUNTAI__            
             data_type = _control_cmd.param6;
+#endif/*__FMU_PMW_YUNTAI__*/
             roll += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param1;
             pitch += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param2;
             yaw += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param3;
-            //PX4FLOW_WARNX((nullptr,"_control_cmd.param1 :%.2f,roll:%.2f",(double)_control_cmd.param1,(double)roll));
             updated = true;
-
+			
 		}
 
 		if (_control_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT &&
@@ -498,6 +511,7 @@ Gimbal::cycle()
 			yaw += gimablDirectionEuler(2);
 
 			updated = true;
+			
 		}
 
 	}
@@ -542,8 +556,11 @@ Gimbal::cycle()
         controls.control[5] = data_type;
 #endif
 		/* publish it */
-        orb_publish(ORB_ID(actuator_controls_3), _actuator_controls_2_topic, &controls);
-
+#if	__FMU_PMW_YUNTAI__
+		orb_publish(ORB_ID(actuator_controls_3), _actuator_controls_2_topic, &controls);
+#else
+        orb_publish(ORB_ID(actuator_controls_2), _actuator_controls_2_topic, &controls);
+#endif/*__FMU_PMW_YUNTAI__*/
 	}
 
 	/* notify anyone waiting for data */

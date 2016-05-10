@@ -850,13 +850,22 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			orb_check(vehicle_gps_position_sub, &updated);
 
 			if (updated) {
+				
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 
 				bool reset_est = false;
+				
+#if __RC_LOSS_TEST__
+				gps.eph = params.loss_epvh;
+				gps.epv = params.loss_epvh;
+				PX4FLOW_WARNX((nullptr,"gps.eph  %.2f params.loss_epvh %.2f",(double)gps.eph,(double)params.loss_epvh));
+#endif/*__RC_LOSS_TEST__*/
 
 				/* hysteresis for GPS quality */
 				if (gps_valid) {
-					if (gps.eph > max_eph_epv || gps.epv > max_eph_epv || gps.fix_type < 3) {
+					if (gps.eph > max_eph_epv || gps.epv > max_eph_epv || gps.fix_type < 3) 
+
+					{
 						gps_valid = false;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 						warnx("[inav] GPS signal lost");
