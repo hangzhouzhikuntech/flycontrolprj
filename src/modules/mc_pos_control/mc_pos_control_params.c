@@ -397,7 +397,37 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 4.0f);
  * @min 0.0
  * @max 15.0
  * @decimal 2
- * @group Multicopter Position Control
+ * @group ZHIKUN
  */
 PARAM_DEFINE_FLOAT(MPC_SENSOR_LIMIT, 0.36f);
 #endif/*__DAVID_DISTANCE__*/
+#if __PRESSURE_1__
+/**
+ * the portion of pressure p
+ *
+ * @min 0.0
+ * @max 10000.0
+ * @decimal 2
+ * @group ZHIKUN
+*/
+PARAM_DEFINE_FLOAT(PRESSURE_P, 0.0f);
+/**
+ * pressure_so
+ *
+ * @min 0.0
+ * @max 10000.0
+ * @decimal 2
+ * @group ZHIKUN
+*/
+PARAM_DEFINE_FLOAT(PRESSURE_SP, 0.0f);
+/**
+ * proll_p
+ *
+ * @min 0.0
+ * @max 10000.0
+ * @decimal 2
+ * @group ZHIKUN
+*/
+PARAM_DEFINE_FLOAT(PROLL_P, 0.0f);
+#endif/*__PRESSURE_1__*/	
+

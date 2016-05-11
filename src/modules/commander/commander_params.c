@@ -320,7 +320,7 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
  *
  * the sensor id to use
  *
- * @group Commander
+ * @group ZHIKUN
  * @min 0
  * @max 255
  */
@@ -332,7 +332,7 @@ PARAM_DEFINE_INT32(SENSOR_ID_USE, 0);
  *
  * ultra_sonar switch height threshold.
  *
- * @group Commander
+ * @group ZHIKUN
  * @unit meter
  * @min 0
  * @max 5
@@ -340,3 +340,36 @@ PARAM_DEFINE_INT32(SENSOR_ID_USE, 0);
  */
 PARAM_DEFINE_FLOAT(SONAR_SWITCH, 1.5f);
 #endif/*__DAVID_DISTANCE_FIX__*/
+#if __DAVID_CHAO_WARING__
+/**
+ * to select forward id of ultrasonic
+ *
+ * the sensor id to use
+ *
+ * @group ZHIKUN
+ * @min 0
+ * @max 255
+ */
+PARAM_DEFINE_INT32(SONAR_ID_F, 0);
+/**
+ * to select backward id of ultrasonic
+ *
+ * the sensor id to use
+ *
+ * @group ZHIKUN
+ * @min 0
+ * @max 255
+ */
+PARAM_DEFINE_INT32(SONAR_ID_B, 0);/**
+ * ultra_sonar warning distance
+ *
+ * ultra_sonar warning distance
+ *
+ * @group ZHIKUN
+ * @unit meter
+ * @min 0
+ * @max 5
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(WARN_DIS, 3.0f);
+#endif/*__DAVID_CHAO_WARING__*/

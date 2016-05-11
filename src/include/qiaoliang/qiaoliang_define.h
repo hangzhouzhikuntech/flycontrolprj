@@ -27,7 +27,6 @@
 #define __DAVID_NAV_LOG__  						(1)
 #define __DAVID_YAW_FIX__  						(1)
 #define __DAVID_CHAO_WARING__  					(0)
-#define __DAVID_NOUSE__  						(1)
 
 #define __ATT_PROTECT_FIX__  					(1)
 
@@ -36,12 +35,8 @@
 #define __MC_POS_FIX__ 							(1)
 #define __LAND_FIX__ 							(0)
 
-
-
 #define __PRESSURE__ 							(0)
-
-
-
+#define __PRESSURE_1__ 							(0)
 
 #define __RC_LOSS_TEST__ 						(0)
 

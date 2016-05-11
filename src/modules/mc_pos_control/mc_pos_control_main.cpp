@@ -171,7 +171,7 @@ private:
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
 #if __PRESSURE__
-	struct pressure_s	_pressure_sp; 	/**< vehicle global velocity setpoint */
+	struct pressure_s	_pressure; 	/**< vehicle global velocity setpoint */
 #endif/*__PRESSURE__*/
 
 
@@ -216,6 +216,11 @@ private:
 #if __DAVID_DISTANCE__
 		param_t sensor_limit;
 #endif/*__DAVID_DISTANCE__*/	
+#if __PRESSURE_1__
+		param_t pressure_p;
+		param_t pressure_sp;
+		param_t proll_p;
+#endif/*__PRESSURE_1__*/
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -241,7 +246,11 @@ private:
 #if __DAVID_DISTANCE__
 		float sensor_limit;
 #endif/*__DAVID_DISTANCE__*/	
-
+#if __PRESSURE_1__
+		float pressure_p;
+		float pressure_sp;
+		float proll_p;
+#endif/*__PRESSURE_1__*/
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
 		math::Vector<3> vel_i;
@@ -280,7 +289,12 @@ private:
 	bool _takeoff_jumped;
 	float _vel_z_lp;
 	float _acc_z_lp;
+#if __PRESSURE_1__
+	float _pressure_delta;
+	float _pressure_sp;
+#endif/*__PRESSURE_1__*/	
 	float _takeoff_thrust_sp;
+
 
 	/**
 	 * Update our local parameter cache.
@@ -422,6 +436,11 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_takeoff_jumped(false),
 	_vel_z_lp(0),
 	_acc_z_lp(0),
+#if __PRESSURE_1__
+	_pressure_delta(0),
+	_pressure_sp(0),
+#endif/*__PRESSURE_1__*/	
+
 	_takeoff_thrust_sp(0.0f)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
@@ -491,7 +510,11 @@ MulticopterPositionControl::MulticopterPositionControl() :
 #if __DAVID_DISTANCE__
 	_params_handles.sensor_limit = param_find("MPC_SENSOR_LIMIT");
 #endif/*__DAVID_DISTANCE__*/	
-	
+#if __PRESSURE_1__
+	_params_handles.pressure_p = param_find("PRESSURE_P");
+	_params_handles.pressure_sp = param_find("PRESSURE_SP");
+	_params_handles.proll_p = param_find("PROLL_P");
+#endif/*__PRESSURE_1__*/	
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -596,6 +619,14 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.sensor_limit, &v);
 		_params.sensor_limit = v;
 #endif/*__DAVID_DISTANCE__*/	
+#if __PRESSURE_1__
+		param_get(_params_handles.pressure_p, &v);
+		_params.pressure_p = v;
+		param_get(_params_handles.pressure_sp, &v);
+		_params.pressure_sp = v;
+		param_get(_params_handles.proll_p, &v);
+		_params.proll_p = v;
+#endif/*__PRESSURE_1__*/
 
 		_params.sp_offs_max = _params.vel_max.edivide(_params.pos_p) * 2.0f;
 
@@ -688,7 +719,7 @@ MulticopterPositionControl::poll_subscriptions()
 #if __PRESSURE__
 	orb_check(_pressue_sp_sub, &updated);
 	if (updated) {
-		orb_copy(ORB_ID(pressure), _pressue_sp_sub, &_pressure_sp);
+		orb_copy(ORB_ID(pressure), _pressue_sp_sub, &_pressure);
 	}
 #endif/*__PRESSURE__*/
 
@@ -1317,6 +1348,7 @@ MulticopterPositionControl::task_main()
 		}
 		if(!_arming.armed){_control_flag = false;}
 #endif/*__DAVID_YAW_FIX__*/
+
 #if __DAVID_YAW_FIX__
 		if ((_control_mode.flag_control_altitude_enabled ||
 				_control_mode.flag_control_position_enabled ||
@@ -1427,6 +1459,7 @@ MulticopterPositionControl::task_main()
 
 			}
 #endif/*__MC_POS_FIX__*/
+
 			else {
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 				if (_run_pos_control) {
@@ -1446,6 +1479,7 @@ MulticopterPositionControl::task_main()
 					}
 #endif/*__DAVID_DISTANCE__*/
 					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
+
 				}
 
 				/* make sure velocity setpoint is saturated in xy*/
@@ -1603,8 +1637,6 @@ MulticopterPositionControl::task_main()
 					/* velocity error */
 					math::Vector<3> vel_err = _vel_sp - _vel;
 #if __DAVID_DISTANCE__
-					//printf("_params.sensor_limit %.2f \n",(double)_params.sensor_limit);
-
 					if(_local_pos.distace_sensor_ok&&_pos(2)<_params.sensor_limit){
 						vel_err(2)=0;
 					}
@@ -1973,12 +2005,20 @@ MulticopterPositionControl::task_main()
 					_att_sp.thrust = math::max(_att_sp.thrust, _manual_thr_min.get());
 				}
 			}
+#if __PRESSURE_1__
+			if(_local_pos.distace_sensor_ok){
+				_att_sp.roll_body +=(_pressure.pressure_2-_pressure.pressure_1)*_params.proll_p;
+				float pre_total = (_pressure.pressure_2+_pressure.pressure_1)/2;
+				_att_sp.thrust += (pre_total-_params.pressure_sp)*_params.pressure_p;
+			}
+#endif/*__PRESSURE_1__*/
 
 			math::Matrix<3, 3> R_sp;
 
 			/* construct attitude setpoint rotation matrix */
 			R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+
 
 			/* reset the acceleration set point for all non-attitude flight modes */
 			if (!(_control_mode.flag_control_offboard_enabled &&

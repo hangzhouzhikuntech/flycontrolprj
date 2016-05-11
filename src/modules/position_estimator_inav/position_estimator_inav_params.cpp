@@ -309,7 +309,7 @@ PARAM_DEFINE_FLOAT(INAV_FLOW_DIST_Y, 0.0f);
  *
  * @min 0
  * @max 2000
- * @group Position Estimator INAV
+ * @group ZHIKUN
  */
 PARAM_DEFINE_FLOAT(LOSS_EPVH, 0.0f);
 #endif/*__RC_LOSS_TEST__*/
