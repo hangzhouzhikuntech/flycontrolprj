@@ -2112,12 +2112,12 @@ int commander_thread_main(int argc, char *argv[])
 #if __DAVID_CHAO_WARING__
 				if(distance_sensor_rece.id == sonar_id_f){
 					if(distance_sensor_rece.current_distance < warn_dis){
-						mavlink_log_critical(mavlink_fd, "warning,forward distance is too close!!");
+						mavlink_log_critical(mavlink_fd, "#warning,forward distance is too close");
 					}
 				}
 				if(distance_sensor_rece.id == sonar_id_b){
 					if(distance_sensor_rece.current_distance < warn_dis){
-						mavlink_log_critical(mavlink_fd, "warning,backward distance is too close!!");
+						mavlink_log_critical(mavlink_fd, "#warning,backward distance is too close!!");
 					}
 				}
 #endif/*__DAVID_CHAO_WARING__*/
