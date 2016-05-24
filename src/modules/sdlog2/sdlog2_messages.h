@@ -510,6 +510,14 @@ struct log_CTS_s {
 	float yaw_rate;
 };
 
+#if __PRESSURE__
+#define LOG_PRES_MSG 48
+struct log_PRES_s {
+	uint32_t pressure_1;
+	uint32_t pressure_2;
+};
+#endif/*__PRESSURE__*/
+
 #define LOG_OUT1_MSG 50
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
@@ -591,6 +599,9 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
+#if __PRESSURE__
+	LOG_FORMAT(PRES, "II", "p_1,p_2"),
+#endif/*__PRESSURE__*/
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

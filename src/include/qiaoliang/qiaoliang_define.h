@@ -37,6 +37,7 @@
 
 #define __PRESSURE__ 							(0)
 #define __PRESSURE_1__ 							(0)
+#define __PRESSURE_LB__ 						(0)
 
 #define __RC_LOSS_TEST__ 						(0)
 

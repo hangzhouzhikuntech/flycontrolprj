@@ -100,6 +100,17 @@
 #define rJDR4		REG(STM32_ADC_JDR4_OFFSET)
 #define rDR		REG(STM32_ADC_DR_OFFSET)
 
+#if	__PRESSURE_LB__
+#define LB_N 10
+
+#endif/*__PRESSURE_LB__*/
+
+#if __PRESSURE__
+#define SCALE 1
+#define TOTAL_COUNT 1850
+
+#endif
+
 #ifdef STM32_ADC_CCR
 # define rCCR		REG(STM32_ADC_CCR_OFFSET)
 #endif
@@ -131,6 +142,12 @@ private:
 #if __PRESSURE__
 	orb_advert_t		_to_pressure;
 #endif/*__PRESSURE__*/
+#if	__PRESSURE_LB__
+	uint32_t _value_buf_1[LB_N];
+	uint32_t _value_buf_2[LB_N];
+    static uint32_t _filter(uint32_t value,uint32_t *value_buf);
+#endif/*__PRESSURE_LB__*/
+
 	orb_advert_t		_to_system_power;
 
 	/** work trampoline */
@@ -165,6 +182,9 @@ ADC::ADC(uint32_t channels) :
 #if __PRESSURE__
 	_to_pressure(nullptr),
 #endif/*__PRESSURE__*/
+
+
+
 	_to_system_power(nullptr)
 {
 	_debug_enabled = true;
@@ -178,6 +198,10 @@ ADC::ADC(uint32_t channels) :
 			_channel_count++;
 		}
 	}
+#if	__PRESSURE_LB__
+		memset(_value_buf_1,0,sizeof(uint32_t)*LB_N);
+		memset(_value_buf_2,0,sizeof(uint32_t)*LB_N);
+#endif/*__PRESSURE_LB__*/
 
 	_samples = new adc_msg_s[_channel_count];
 
@@ -262,7 +286,6 @@ ADC::init()
 		}
 	}
 
-
 	DEVICE_DEBUG("init done");
 
 	/* create the device node */
@@ -274,6 +297,22 @@ ADC::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	return -ENOTTY;
 }
+#if	__PRESSURE_LB__
+uint32_t
+ADC::_filter(uint32_t value,uint32_t *value_buf){
+
+	uint32_t sum = value;
+
+	for (int i=0;i<LB_N - 1;i++){
+		value_buf[i]=value_buf[i+1];
+		sum += value_buf[i];
+	}
+	value_buf[LB_N-1] = value;
+	return (uint32_t)(sum/(LB_N));
+
+}
+
+#endif/*__PRESSURE_LB__*/
 
 ssize_t
 ADC::read(file *filp, char *buffer, size_t len)
@@ -411,10 +450,19 @@ ADC::update_pressure(void)
 {
 	pressure_s _pre_t;
 
+#if	__PRESSURE_LB__
 	_pre_t.timestamp = hrt_absolute_time();
-	_pre_t.pressure_1 = _samples[7].am_data;
+	_pre_t.pressure_1=TOTAL_COUNT-_filter(_samples[7].am_data/SCALE,_value_buf_1);
+	_pre_t.pressure_2=TOTAL_COUNT-_filter(_samples[6].am_data/SCALE,_value_buf_2);
+//	PX4FLOW_WARNX((nullptr,"filter %u %u",_pre_t.pressure_1,_pre_t.pressure_2));
+#else/*__PRESSURE_LB__*/
+	_pre_t.timestamp = hrt_absolute_time();
+	_pre_t.pressure_1 = TOTAL_COUNT-_samples[7].am_data/SCALE;
+	_pre_t.pressure_2 = TOTAL_COUNT-_samples[6].am_data/SCALE;
+//	PX4FLOW_WARNX((nullptr,"_pre_t.pressure_1  %u pressure_2 %u",_pre_t.pressure_1,_pre_t.pressure_2));
+#endif/*__PRESSURE_LB__*/
 
-//PX4FLOW_WARNX((nullptr,"_pre_t.pressure_1  %u",_pre_t.pressure_1 ));
+//PX4FLOW_WARNX((nullptr,"_pre_t.pressure_1  %u %u",_pre_t.pressure_1,_pre_t.pressure_2));
 	if (_to_pressure != nullptr) {
 		orb_publish(ORB_ID(pressure), _to_pressure, &_pre_t);
 

@@ -124,6 +124,10 @@
 #include "sdlog2_format.h"
 #include "sdlog2_messages.h"
 
+#if __PRESSURE__
+#include <uORB/topics/pressure.h>
+#endif/*__PRESSURE__*/
+
 #define PX4_EPOCH_SECS 1234567890L
 
 #define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
@@ -1097,6 +1101,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct time_offset_s time_offset;
 		struct mc_att_ctrl_status_s mc_att_ctrl_status;
 		struct control_state_s ctrl_state;
+#if __PRESSURE__
+		struct pressure_s pressure;
+#endif/*__PRESSURE__*/			
 		struct ekf2_innovations_s innovations;
 	} buf;
 
@@ -1147,6 +1154,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_TSYN_s log_TSYN;
 			struct log_MACS_s log_MACS;
 			struct log_CTS_s log_CTS;
+#if	__PRESSURE__
+			struct log_PRES_s log_PRES;
+#endif/*__PRESSURE__*/
 			struct log_EST4_s log_INO1;
 			struct log_EST5_s log_INO2;
 		} body;
@@ -1193,6 +1203,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int tsync_sub;
 		int mc_att_ctrl_status_sub;
 		int ctrl_state_sub;
+#if __PRESSURE__
+		int pressure_sub;
+#endif/*__PRESSURE__*/	
 		int innov_sub;
 	} subs;
 
@@ -1921,6 +1934,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
 			LOGBUFFER_WRITE_AND_COUNT(CTS);
 		}
+#if __PRESSURE__
+			if (copy_if_updated(ORB_ID(pressure), &subs.pressure_sub, &buf.pressure)) {
+				log_msg.msg_type = LOG_PRES_MSG;
+				log_msg.body.log_PRES.pressure_1 = buf.pressure.pressure_1;
+				log_msg.body.log_PRES.pressure_2 = buf.pressure.pressure_2;
+				LOGBUFFER_WRITE_AND_COUNT(PRES);
+			}
+#endif/*__PRESSURE__*/
 
 		/* signal the other thread new data, but not yet unlock */
 		if (logbuffer_count(&lb) > MIN_BYTES_TO_WRITE) {

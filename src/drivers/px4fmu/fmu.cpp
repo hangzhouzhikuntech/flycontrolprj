@@ -934,7 +934,7 @@ PX4FMU::update_gimbal_data(int data_type)
             (*data_pwm) = roll_target;
             _adjust_status = false;
             }
-            PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f,roll_increment = %.2f,roll_target = %d",(double)(*data_pwm),(double)roll_increment,roll_target));
+ //           PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f,roll_increment = %.2f,roll_target = %d",(double)(*data_pwm),(double)roll_increment,roll_target));
         }
 #else
             //for(unsigned i = 0; i < 3; i++){
