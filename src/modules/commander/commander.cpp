@@ -1076,6 +1076,7 @@ int commander_thread_main(int argc, char *argv[])
 #if __DAVID_CHAO_WARING__
 	param_t _param_sonar_id_f= param_find("SONAR_ID_F");
 	param_t _param_sonar_id_b= param_find("SONAR_ID_B");
+	param_t _param_sonar_id_d= param_find("SONAR_ID_D");
 	param_t _param_warn_dis = param_find("WARN_DIS");
 #endif/*__DAVID_CHAO_WARING__*/
 
@@ -1452,6 +1453,7 @@ int commander_thread_main(int argc, char *argv[])
 #if __DAVID_CHAO_WARING__
 	int32_t sonar_id_f;
 	int32_t sonar_id_b;
+	int32_t sonar_id_d;
 	float warn_dis;
 #endif/*__DAVID_CHAO_WARING__*/
 
@@ -1552,6 +1554,7 @@ int commander_thread_main(int argc, char *argv[])
 #if __DAVID_CHAO_WARING__
 			param_get(_param_sonar_id_f, &sonar_id_f);
 			param_get(_param_sonar_id_b, &sonar_id_b);
+			param_get(_param_sonar_id_d, &sonar_id_d);
 			param_get(_param_warn_dis, &warn_dis);
 #endif/*__DAVID_CHAO_WARING__*/
 			/* Autostart id */
@@ -2118,6 +2121,11 @@ int commander_thread_main(int argc, char *argv[])
 				if(distance_sensor_rece.id == sonar_id_b){
 					if(distance_sensor_rece.current_distance < warn_dis){
 						mavlink_log_critical(mavlink_fd, "#warning,backward distance is too close!!");
+					}
+				}
+				if(distance_sensor_rece.id == sonar_id_d){
+					if(distance_sensor_rece.current_distance < warn_dis){
+						mavlink_log_critical(mavlink_fd, "#warning,down distance is too close!!");
 					}
 				}
 #endif/*__DAVID_CHAO_WARING__*/

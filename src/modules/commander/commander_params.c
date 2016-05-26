@@ -360,7 +360,18 @@ PARAM_DEFINE_INT32(SONAR_ID_F, 0);
  * @min 0
  * @max 255
  */
-PARAM_DEFINE_INT32(SONAR_ID_B, 0);/**
+PARAM_DEFINE_INT32(SONAR_ID_B, 0);
+/**
+ * to select downward id of ultrasonic
+ *
+ * the sensor id to use
+ *
+ * @group ZHIKUN
+ * @min 0
+ * @max 255
+ */
+PARAM_DEFINE_INT32(SONAR_ID_D, 0);
+/**
  * ultra_sonar warning distance
  *
  * ultra_sonar warning distance

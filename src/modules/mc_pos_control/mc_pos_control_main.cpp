@@ -2056,11 +2056,8 @@ MulticopterPositionControl::task_main()
 			//		PX4FLOW_WARNX((nullptr,"-bb-fabsf(pre_delta) %.2f _pre1_offset-_pre2_offset %.2f _pre1_offset %u %u",(double)fabsf(pre_delta),(double)(DELTA_SCALE*fabsf(_pre1_offset-_pre2_offset)),_pre1_offset,_pre2_offset));
 				}
 				float pre_total = (_pressure.pressure_2+_pressure.pressure_1-_pre1_offset-_pre2_offset)/2000.0f;
-				
-				//PX4FLOW_WARNX((nullptr,"_pressure.pressure_2-_pre1_offset %d",_pressure.pressure_2+_pressure.pressure_1-_pre1_offset-_pre2_offset));
 				_att_sp.thrust =math::constrain(_att_sp.thrust + math::constrain((_params.pressure_sp-pre_total)*_params.pressure_p,-0.01f,0.01f),0.0f,1.0f);
 				}
-		//PX4FLOW_WARNX((nullptr,"_att_sp.roll_body  %.2f thrust %.2f,_pressure %u %u",(double)_att_sp.roll_body,(double)_att_sp.thrust,_pressure.pressure_1,_pressure.pressure_2));
 			//}
 #endif/*__PRESSURE_1__*/
 

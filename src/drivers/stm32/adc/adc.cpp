@@ -107,7 +107,7 @@
 
 #if __PRESSURE__
 #define SCALE 1
-#define TOTAL_COUNT 1850
+#define TOTAL_COUNT 2000
 
 #endif
 
