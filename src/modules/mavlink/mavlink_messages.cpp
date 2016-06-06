@@ -85,6 +85,8 @@
 #include "mavlink_messages.h"
 #include "mavlink_main.h"
 
+#include "qiaoliang/qiaoliang_define.h"
+
 static uint16_t cm_uint16_from_m_float(float m);
 static void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet,
 				   uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
@@ -2181,7 +2183,6 @@ protected:
 			msg.chan18_raw = (rc.channel_count > 17) ? rc.values[17] : UINT16_MAX;
 
 			msg.rssi = rc.rssi;
-
 			_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS, &msg);
 
 			/* send override message - harmless if connected to GCS, allows to connect a board to a Linux system */

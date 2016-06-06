@@ -1079,6 +1079,9 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_sonar_id_d= param_find("SONAR_ID_D");
 	param_t _param_warn_dis = param_find("WARN_DIS");
 #endif/*__DAVID_CHAO_WARING__*/
+#if __POS_MANAUL__
+	param_t _param_manual_pos = param_find("MANUAL_POS");
+#endif/*__POS_MANAUL__*/
 
 	// These are too verbose, but we will retain them a little longer
 	// until we are sure we really don't need them.
@@ -1193,6 +1196,10 @@ int commander_thread_main(int argc, char *argv[])
 #if __DAVID_DISTANCE__
 	status.distance_sensor_ok = false;
 #endif/*__DAVID_DISTANCE__*/
+#if __POS_MANAUL__
+	status.manual_pos = false;
+#endif/*__POS_MANAUL__*/
+
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
@@ -1387,9 +1394,8 @@ int commander_thread_main(int argc, char *argv[])
 	//struct vtol_vehicle_status_s vtol_status;
 	memset(&vtol_status, 0, sizeof(vtol_status));
 	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
-
-
 	control_status_leds(&status, &armed, true);
+
 
 	/* now initialized */
 	commander_initialized = true;
@@ -1456,6 +1462,9 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t sonar_id_d;
 	float warn_dis;
 #endif/*__DAVID_CHAO_WARING__*/
+#if __POS_MANAUL__
+	float manual_pos;
+#endif/*__POS_MANAUL__*/
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
@@ -1557,6 +1566,10 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_sonar_id_d, &sonar_id_d);
 			param_get(_param_warn_dis, &warn_dis);
 #endif/*__DAVID_CHAO_WARING__*/
+#if __POS_MANAUL__
+			param_get(_param_manual_pos, &manual_pos);
+#endif/*__POS_MANAUL__*/
+
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
 
@@ -1579,7 +1592,13 @@ int commander_thread_main(int argc, char *argv[])
 		if (updated) {
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
 		}
-
+#if __POS_MANAUL__
+		if(fabsf(sp_man.x)>manual_pos||fabsf(sp_man.y)>manual_pos){
+			status.manual_pos = true;
+		}else{
+			status.manual_pos = false;
+		}
+#endif/*__POS_MANAUL__*/
 		orb_check(offboard_control_mode_sub, &updated);
 
 		if (updated) {
@@ -2124,6 +2143,7 @@ int commander_thread_main(int argc, char *argv[])
 					}
 				}
 				if(distance_sensor_rece.id == sonar_id_d){
+					
 					if(distance_sensor_rece.current_distance < warn_dis){
 						mavlink_log_critical(mavlink_fd, "#warning,down distance is too close!!");
 					}
@@ -2135,6 +2155,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 	
 #endif/*__DAVID_DISTANCE__*/
+		//mavlink_log_critical(mavlink_fd, "#warning,down distance is too close!!");
 
 		/* start geofence result check */
 		orb_check(geofence_result_sub, &updated);
@@ -2292,6 +2313,12 @@ int commander_thread_main(int argc, char *argv[])
 			if (status.is_rotary_wing && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 			    (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) &&
 			    (status.main_state == vehicle_status_s::MAIN_STATE_MANUAL ||
+#if __DAVID_ARMED_FIX__
+					status.main_state == vehicle_status_s::MAIN_STATE_ALTCTL ||
+					status.main_state == vehicle_status_s::MAIN_STATE_POSCTL ||
+					status.main_state == vehicle_status_s::MAIN_STATE_AUTO_RTL ||
+					status.main_state == vehicle_status_s::MAIN_STATE_AUTO_LAND ||
+#endif/*__DAVID_ARMED_FIX__*/
 			    	status.main_state == vehicle_status_s::MAIN_STATE_ACRO ||
 			    	status.main_state == vehicle_status_s::MAIN_STATE_STAB ||
 			    	status.main_state == vehicle_status_s::MAIN_STATE_RATTITUDE ||

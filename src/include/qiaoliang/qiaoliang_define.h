@@ -26,9 +26,10 @@
 #define __DAVID_MANUAL__						(1)
 #define __DAVID_NAV_LOG__  						(1)
 #define __DAVID_YAW_FIX__  						(1)
-#define __DAVID_CHAO_WARING__  					(0)
-
 #define __ATT_PROTECT_FIX__  					(1)
+
+#define __DAVID_CHAO_WARING__  					(0)
+#define __DAVID_ARMED_FIX__  					(1)
 
 #define __FMU_CONFIG__  						(1)
 #define __FMU_PMW_YUNTAI__ 						(1)
@@ -39,6 +40,9 @@
 #define __PRESSURE_1__ 							(0)
 #define __PRESSURE_LB__ 						(0)
 
+#define __POS_MANAUL__ 							(1)
+
+
 #define __RC_LOSS_TEST__ 						(0)
 
 
@@ -46,6 +50,7 @@
 #  define __PX4FLOW_TEST_						(1)
 #else
 #  define __PX4FLOW_TEST_						(0)
+
 #endif/*__DEBUG__*/
 
 #if __PX4FLOW_TEST_

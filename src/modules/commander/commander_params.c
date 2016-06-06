@@ -384,3 +384,17 @@ PARAM_DEFINE_INT32(SONAR_ID_D, 0);
  */
 PARAM_DEFINE_FLOAT(WARN_DIS, 3.0f);
 #endif/*__DAVID_CHAO_WARING__*/
+#if __POS_MANAUL__
+/**
+ * manual_pos_threhold
+ *
+ * manual_pos_threhold
+ *
+ * @group ZHIKUN
+ * @unit meter
+ * @min 0
+ * @max 5
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(MANUAL_POS, 1.0f);
+#endif/*__POS_MANAUL__*/

@@ -636,7 +636,15 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 				break;
 
 			case vehicle_status_s::MAIN_STATE_POSCTL:
+#if __POS_MANAUL__
+				if(status->manual_pos==true){
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+				}else{
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+				}
+#else
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+#endif/*__POS_MANAUL__*/
 				break;
 
 			default:
