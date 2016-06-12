@@ -100,6 +100,8 @@
 
 #include "DevMgr.hpp"
 
+#include "qiaoliang/qiaoliang_define.h"
+
 using namespace DriverFramework;
 
 /**
@@ -1766,7 +1768,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 			}
 
 			_last_adc = t;
-
+#if __BATT_I2C__
+#else/*__BATT_I2C__*/	
 			if (_battery_status.voltage_filtered_v > BATT_V_IGNORE_THRESHOLD) {
 				/* announce the battery status if needed, just publish else */
 				if (_battery_pub != nullptr) {
@@ -1776,6 +1779,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
 				}
 			}
+#endif/*__BATT_I2C__*/			
 		}
 	}
 }

@@ -792,6 +792,7 @@ then
 	#px4flow start &
 	mb12xx start &
 	gimbal start &
+	batt_smbus start &
 fi
 
 # Start USB shell if no microSD present, MAVLink else

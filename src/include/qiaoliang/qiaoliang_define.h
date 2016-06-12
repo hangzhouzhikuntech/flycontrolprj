@@ -40,8 +40,8 @@
 #define __PRESSURE_1__ 							(0)
 #define __PRESSURE_LB__ 						(0)
 
-#define __POS_MANAUL__ 							(1)
-
+#define __POS_MANAUL__ 							(0)
+#define __BATT_I2C__ 							(0)
 
 #define __RC_LOSS_TEST__ 						(0)
 

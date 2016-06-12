@@ -1679,12 +1679,15 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	/* the announced battery status would conflict with the simulated battery status in HIL */
 	if (!(_pub_blocked)) {
 		/* lazily publish the battery voltage */
+#if __BATT_I2C__
+#else/*__BATT_I2C__*/	
 		if (_to_battery != nullptr) {
 			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
 
 		} else {
 			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
 		}
+#endif/*__BATT_I2C__*/
 	}
 }
 

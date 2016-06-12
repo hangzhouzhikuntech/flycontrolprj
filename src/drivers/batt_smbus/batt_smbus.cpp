@@ -77,30 +77,71 @@
 #include <drivers/drv_batt_smbus.h>
 #include <drivers/device/ringbuffer.h>
 
+#include "qiaoliang/qiaoliang_define.h"
+
+
+
+
+
 #define BATT_SMBUS_ADDR_MIN             0x08	///< lowest possible address
 #define BATT_SMBUS_ADDR_MAX             0x7F	///< highest possible address
 
+#if __BATT_I2C__
+#define BATT_SMBUS_I2C_BUS              PX4_I2C_BUS_EXPANSION
+#define BATT_SMBUS_ADDR                 0x0B	///< I2C address
+#define BATT_SMBUS_VOLTAGE              0x01	///< voltage register
+#define BATT_SMBUS_CURRENT              0x03	///< current register
+#define BATT_SMBUS_TEMP                 0x04	///< temperature register
+#define BATT_SMBUS_BATTSTATUS           0x06	///< temperature register
+#define BATT_SMBUS_REMAINING_CAPACITY	0x13	///< predicted remaining battery capacity as a percentage
+#define BATT_SMBUS_FULL_CHARGE_CAPACITY 0x14    ///< capacity when fully charged
+#define BATT_SMBUS_DESIGN_CAPACITY		0x11	///< design capacity register
+#define BATT_SMBUS_DESIGN_VOLTAGE		0x10	///< design voltage register
+#define BATT_SMBUS_VOLTAGE_1			0x0D
+#define BATT_SMBUS_VOLTAGE_2			0x0C
+#define BATT_SMBUS_VOLTAGE_3			0x0B
+#define BATT_SMBUS_VOLTAGE_4			0x0A
+#define BATT_SMBUS_VOLTAGE_5			0x09
+#define BATT_SMBUS_CYCLECOUNT			0x16	
+#define BATT_SMBUS_CYCLECOUNT			0x16	
+#define BATT_SMBUS_RSOC					0x12
+
+//#define BATT_SMBUS_MANUFACTURE_DATE   	0x22  ///< manufacture date register
+//#define BATT_SMBUS_SERIAL_NUMBER      	0x20  ///< serial number register
+//#define BATT_SMBUS_MANUFACTURER_NAME	0x21	///< manufacturer name
+//#define BATT_SMBUS_DEVICE_NAME        	0x16  ///< device name register
+//#define BATT_SMBUS_DEVICE_CHEMISTRY   	0x24  ///< device chemistry register
+//#define BATT_SMBUS_MANUFACTURER_DATA	0x22	///< manufacturer data
+//#define BATT_SMBUS_MANUFACTURE_INFO		0x25	///< cell voltage register
+
+
+#else/*__BATT_I2C__*/
 #define BATT_SMBUS_I2C_BUS              PX4_I2C_BUS_EXPANSION
 #define BATT_SMBUS_ADDR                 0x0B	///< I2C address
 #define BATT_SMBUS_TEMP                 0x08	///< temperature register
 #define BATT_SMBUS_VOLTAGE              0x09	///< voltage register
 #define BATT_SMBUS_REMAINING_CAPACITY	0x0f	///< predicted remaining battery capacity as a percentage
 #define BATT_SMBUS_FULL_CHARGE_CAPACITY 0x10    ///< capacity when fully charged
-#define BATT_SMBUS_DESIGN_CAPACITY	0x18	///< design capacity register
-#define BATT_SMBUS_DESIGN_VOLTAGE	0x19	///< design voltage register
-#define BATT_SMBUS_MANUFACTURE_DATE   0x1B  ///< manufacture date register
-#define BATT_SMBUS_SERIAL_NUMBER      0x1C  ///< serial number register
+#define BATT_SMBUS_DESIGN_CAPACITY		0x18	///< design capacity register
+#define BATT_SMBUS_DESIGN_VOLTAGE		0x19	///< design voltage register
+#define BATT_SMBUS_MANUFACTURE_DATE   	0x1B  ///< manufacture date register
+#define BATT_SMBUS_SERIAL_NUMBER      	0x1C  ///< serial number register
 #define BATT_SMBUS_MANUFACTURER_NAME	0x20	///< manufacturer name
-#define BATT_SMBUS_DEVICE_NAME        0x21  ///< device name register
-#define BATT_SMBUS_DEVICE_CHEMISTRY   0x22  ///< device chemistry register
-#define BATT_SMBUS_MANUFACTURER_DATA		0x23	///< manufacturer data
-#define BATT_SMBUS_MANUFACTURE_INFO	0x25	///< cell voltage register
+#define BATT_SMBUS_DEVICE_NAME        	0x21  ///< device name register
+#define BATT_SMBUS_DEVICE_CHEMISTRY   	0x22  ///< device chemistry register
+#define BATT_SMBUS_MANUFACTURER_DATA	0x23	///< manufacturer data
+#define BATT_SMBUS_MANUFACTURE_INFO		0x25	///< cell voltage register
 #define BATT_SMBUS_CURRENT              0x2a	///< current register
+#endif/*__BATT_I2C__*/
+
+
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_US	(1000000 / 10)	///< time in microseconds, measure at 10Hz
+
+
+
 #define BATT_SMBUS_TIMEOUT_US			10000000	///< timeout looking for battery 10seconds after startup
 
 #define BATT_SMBUS_BUTTON_DEBOUNCE_MS	300		///< button holds longer than this time will cause a power off event
-
 #define BATT_SMBUS_MANUFACTURER_ACCESS	0x00
 #define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS    0x44
 
@@ -239,7 +280,10 @@ private:
 	 * Read a word from specified register
 	 */
 	int			read_reg(uint8_t reg, uint16_t &val);
-
+#if __BATT_I2C__	
+	int				read_reg4(uint8_t reg, int32_t &val);
+	uint32_t	read_regU4(uint8_t reg, uint32_t &val);
+#endif/*__BATT_I2C__*/
 	/**
 	 * Write a word to specified register
 	 */
@@ -278,7 +322,7 @@ private:
 	// internal variables
 	bool			_enabled;	///< true if we have successfully connected to battery
 	work_s			_work;		///< work queue for scheduling reads
-	RingBuffer		*_reports;	///< buffer of recorded voltages, currents
+	ringbuffer::RingBuffer		*_reports;	///< buffer of recorded voltages, currents
 	struct battery_status_s _last_report;	///< last published report, used for test()
 	orb_advert_t		_batt_topic;	///< uORB battery topic
 	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
@@ -299,20 +343,21 @@ BATT_SMBUS *g_batt_smbus;	///< device handle. For now, we only support one BATT_
 void batt_smbus_usage();
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
-
+#if __BATT_I2C__
+#else
 int manufacturer_name();
 int manufacture_date();
 int device_name();
 int serial_number();
 int device_chemistry();
 int solo_battery_check();
-
+#endif/*__BATT_I2C__*/
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	I2C("batt_smbus", BATT_SMBUS0_DEVICE_PATH, bus, batt_smbus_addr, 100000),
 	_enabled(false),
 	_work{},
 	_reports(nullptr),
-	_batt_topic(-1),
+	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
 	_start_time(0),
 	_batt_capacity(0),
@@ -365,7 +410,7 @@ BATT_SMBUS::init()
 
 	} else {
 		// allocate basic report buffers
-		_reports = new RingBuffer(2, sizeof(struct battery_status_s));
+		_reports = new ringbuffer::RingBuffer(2, sizeof(struct battery_status_s));
 
 		if (_reports == nullptr) {
 			ret = ENOTTY;
@@ -469,6 +514,8 @@ BATT_SMBUS::search()
 	return OK;
 }
 
+#if __BATT_I2C__
+#else/*__BATT_I2C__*/
 uint8_t
 BATT_SMBUS::manufacturer_name(uint8_t *man_name, uint8_t max_length)
 {
@@ -551,6 +598,7 @@ BATT_SMBUS::is_solo_battery()
 	check_if_solo_battery();
 	return _is_solo_battery;
 }
+#endif/*__BATT_I2C__*/
 
 int
 BATT_SMBUS::probe()
@@ -594,6 +642,9 @@ BATT_SMBUS::cycle()
 		warnx("did not find smart battery");
 		return;
 	}
+	
+#if __BATT_I2C__
+#else
 
 	bool perform_solo_battry_check = false; // Only check if it is a solo battery if changes have been made to the SBS data
 
@@ -636,6 +687,7 @@ BATT_SMBUS::cycle()
 		warnx("Checking solo battery");
 		check_if_solo_battery();
 	}
+#endif/*__BATT_I2C__*/
 
 	// read data from sensor
 	struct battery_status_s new_report;
@@ -644,39 +696,82 @@ BATT_SMBUS::cycle()
 	new_report.timestamp = now;
 
 	// read voltage
-	uint16_t tmp;
-
+	uint16_t tmp = 0;
+#if __BATT_I2C__
+	int32_t		tmp4= 0;
+	uint32_t	tmpU4= 0;
+#endif
 	if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
 		// initialise new_report
 		memset(&new_report, 0, sizeof(new_report));
 
 		// convert millivolts to volts
 		new_report.voltage_v = ((float)tmp) / 1000.0f;
+		
+#if __BATT_I2C__		
+		new_report.voltage_filtered_v = new_report.voltage_v;  // simplify handle
+		read_reg(BATT_SMBUS_VOLTAGE_1, tmp);
+		new_report.voltage_v1 = ((float)tmp) / 1000.0f;
+		read_reg(BATT_SMBUS_VOLTAGE_2, tmp);
+		new_report.voltage_v2 = ((float)tmp) / 1000.0f;
+		read_reg(BATT_SMBUS_VOLTAGE_3, tmp);
+		new_report.voltage_v3 = ((float)tmp) / 1000.0f;
+		read_reg(BATT_SMBUS_VOLTAGE_4, tmp);
+		new_report.voltage_v4 = ((float)tmp) / 1000.0f;
+
 
 		// read current
-		uint8_t buff[6];
-
-		if (read_block(BATT_SMBUS_CURRENT, buff, 4, false) == 4) {
-			new_report.current_a = -(float)((int32_t)((uint32_t)buff[3] << 24 | (uint32_t)buff[2] << 16 | (uint32_t)buff[1] << 8 |
-							(uint32_t)buff[0])) / 1000.0f;
+		//read current value
+		read_regU4(BATT_SMBUS_CURRENT, tmpU4);
+		
+		if(tmpU4 & 0x80000000){
+			new_report.current_a = (float)(-(~tmpU4 + 1));
+		}else{
+			new_report.current_a = (float)tmpU4;
+		}
+		
+		if (read_reg(BATT_SMBUS_TEMP, tmp) == OK){
+			new_report.temperature1 = (float)((float)tmp - 2731.0f) / 10.0f;
+		}
+		if (read_reg(BATT_SMBUS_CYCLECOUNT, tmp) == OK){
+			new_report.cycle_count = tmp;
 		}
 
+		if (read_reg(BATT_SMBUS_RSOC, tmp) == OK){
+			new_report.RelativeStateOfCharge = tmp;
+		}		
 		// read battery design capacity
 		if (_batt_capacity == 0) {
-			if (read_reg(BATT_SMBUS_FULL_CHARGE_CAPACITY, tmp) == OK) {
-				_batt_capacity = tmp;
+			if (read_reg4(BATT_SMBUS_FULL_CHARGE_CAPACITY, tmp4) == OK) {
+				_batt_capacity = tmp4;
 			}
 		}
 
 		// read remaining capacity
 		if (_batt_capacity > 0) {
-			if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
-				if (tmp < _batt_capacity) {
-					new_report.discharged_mah = _batt_capacity - tmp;
+			if (read_regU4(BATT_SMBUS_REMAINING_CAPACITY, tmpU4) == OK) {
+				if (tmpU4 <= _batt_capacity) {
+					new_report.discharged_mah = _batt_capacity - tmpU4;
+					new_report.remaining_mah  = tmpU4;
 				}
 			}
 		}
+		
 
+	//	PX4FLOW_WARNX((nullptr,"new_report.voltage_v %.2f current_a %.2f",(double)new_report.voltage_v,(double)new_report.current_a));
+#else/*__BATT_I2C__*/
+		uint8_t buff[6];
+		if (read_block(BATT_SMBUS_CURRENT, buff, 4, false) == 4) {
+			new_report.current_a = -(float)((int32_t)((uint32_t)buff[3] << 24 | (uint32_t)buff[2] << 16 | (uint32_t)buff[1] << 8 |
+							(uint32_t)buff[0])) / 1000.0f;
+		}
+#endif/*__BATT_I2C__*/
+
+
+
+
+#if __BATT_I2C__
+#else
 		// if it is a solo battery, check for shutdown on button press
 		if (_is_solo_battery) {
 			// read the button press indicator
@@ -703,19 +798,22 @@ BATT_SMBUS::cycle()
 				}
 			}
 		}
+#endif/*__BATT_I2C__*/
+#if __BATT_I2C__
 
 
 		// publish to orb
-		if (_batt_topic != -1) {
+		if (_batt_topic != nullptr) {
 			orb_publish(_batt_orb_id, _batt_topic, &new_report);
 
 		} else {
 			_batt_topic = orb_advertise(_batt_orb_id, &new_report);
 
-			if (_batt_topic < 0) {
+			if (_batt_topic == nullptr) {
 				errx(1, "ADVERT FAIL");
 			}
 		}
+#endif/*__BATT_I2C__*/
 
 		// copy report for test()
 		_last_report = new_report;
@@ -738,6 +836,27 @@ BATT_SMBUS::cycle()
 int
 BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 {
+#if __BATT_I2C__	
+
+
+    uint8_t buff[2] = {0,0};	// 2 bytes of data + PEC
+
+	int ret = transfer(&reg, 1, NULL,0);
+	if (ret == OK) {
+		usleep(200);
+		ret = transfer(NULL, 0, buff, 2);
+
+		if (ret == OK) {
+			val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
+			//printf("read vol val = %x\r\n",val);
+		}
+		else
+		{
+			return ret;
+		}
+	}
+	
+#else
 	uint8_t buff[3];	// 2 bytes of data + PEC
 
 	// read from register
@@ -754,10 +873,55 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 			ret = ENOTTY;
 		}
 	}
+#endif/*__BATT_I2C__*/
+
+	return ret;
+}
+
+#if __BATT_I2C__	
+int
+BATT_SMBUS::read_reg4(uint8_t reg, int32_t &val)
+{
+	uint8_t buff[4];	// 4 bytes of data without PEC
+
+	// read from register
+	int ret = transfer(&reg, 1, buff, 4);
+
+	if (ret == OK) {
+
+		val = (int32_t)buff[3] << 24 | (int32_t)buff[2] << 16 | (int32_t)buff[1] << 8 | (int32_t)buff[0];
+	}
+	else {
+			ret = ENOTTY;
+			printf(" batt_smbus read reg4 failed!\n");
+	}
 
 	// return success or failure
 	return ret;
 }
+uint32_t
+BATT_SMBUS::read_regU4(uint8_t reg, uint32_t &val)
+{
+	uint8_t buff[4]={0,0,0,0};	// 4 bytes of data without PEC
+
+	// read from register
+	
+	int ret = transfer(&reg, 1, buff, 4);
+
+	if (ret == OK) {
+
+		val = (uint32_t)buff[3] << 24 | (uint32_t)buff[2] << 16 | (uint32_t)buff[1] << 8 | (uint32_t)buff[0];
+	}
+	else {
+			ret = ENOTTY;
+			printf("batt_smbus read regU4 failed!\n");
+	}
+
+	// return success or failure
+	return ret;
+}
+
+#endif/*__BATT_I2C__*/
 
 int
 BATT_SMBUS::write_reg(uint8_t reg, uint16_t val)
@@ -773,7 +937,8 @@ BATT_SMBUS::write_reg(uint8_t reg, uint16_t val)
 	int ret = transfer(buff, 3, nullptr, 0);
 
 	if (ret != OK) {
-		debug("Register write error");
+//		debug("Register write error");
+		printf("Register write error\r\n");
 	}
 
 	// return success or failure
@@ -802,11 +967,11 @@ BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_
 	}
 
 	// check PEC
-	uint8_t pec = get_PEC(reg, true, buff, bufflen + 1);
+//	uint8_t pec = get_PEC(reg, true, buff, bufflen + 1);
 
-	if (pec != buff[bufflen + 1]) {
-		return 0;
-	}
+//	if (pec != buff[bufflen + 1]) {
+//		return 0;
+//	}
 
 	// copy data
 	memcpy(data, &buff[1], bufflen);
@@ -837,7 +1002,8 @@ BATT_SMBUS::write_block(uint8_t reg, uint8_t *data, uint8_t len)
 
 	// return zero on failure
 	if (ret != OK) {
-		debug("Block write error\n");
+//		debug("Block write error\n");
+		printf("Block write error\n");
 		return 0;
 	}
 
@@ -913,7 +1079,9 @@ BATT_SMBUS::ManufacturerAccess(uint16_t cmd)
 	int ret = write_reg(BATT_SMBUS_MANUFACTURER_ACCESS, cmd);
 
 	if (ret != OK) {
-		debug("Manufacturer Access error");
+//		debug("Manufacturer Access error");
+		
+		printf("Manufacturer Access error \n");
 	}
 
 	return ret;
@@ -939,7 +1107,9 @@ batt_smbus_usage()
 	warnx("    -b i2cbus (%d)", BATT_SMBUS_I2C_BUS);
 	warnx("    -a addr (0x%x)", BATT_SMBUS_ADDR);
 }
+#if __BATT_I2C__
 
+#else
 int
 manufacturer_name()
 {
@@ -1032,7 +1202,7 @@ solo_battery_check()
 
 	return OK;
 }
-
+#endif
 int
 batt_smbus_main(int argc, char *argv[])
 {
@@ -1109,7 +1279,8 @@ batt_smbus_main(int argc, char *argv[])
 		g_batt_smbus->search();
 		exit(0);
 	}
-
+#if __BATT_I2C__
+#else
 	if (!strcmp(verb, "man_name")) {
 		manufacturer_name();
 		exit(0);
@@ -1144,7 +1315,7 @@ batt_smbus_main(int argc, char *argv[])
 		solo_battery_check();
 		exit(0);
 	}
-
+#endif
 	batt_smbus_usage();
 	exit(0);
 }
