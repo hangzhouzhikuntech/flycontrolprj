@@ -513,8 +513,8 @@ struct log_CTS_s {
 #if __PRESSURE__
 #define LOG_PRES_MSG 48
 struct log_PRES_s {
-	uint32_t pressure_1;
-	uint32_t pressure_2;
+	int32_t pressure_1;
+	int32_t pressure_2;
 };
 #endif/*__PRESSURE__*/
 
