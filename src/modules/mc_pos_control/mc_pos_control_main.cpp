@@ -2046,7 +2046,7 @@ MulticopterPositionControl::task_main()
 			}
 #if __PRESSURE_1__
 			if(_local_pos.distace_sensor_ok&&!_wait_pressure){
-			//if(!_wait_pressure){
+			  if(!_wait_pressure && !_pressure.overpressure){// _wait_pressure is average pressure & overpressue is judge is the pressure is over 5kg
 				int pre_delta=_pressure.pressure_2-_pressure.pressure_1;
 				if(fabsf(pre_delta)>DELTA_SCALE*fabsf(_pre1_offset-_pre2_offset)){
 					_att_sp.roll_body +=math::constrain(pre_delta/1000.0f*_params.proll_p,-0.1f,0.1f);
@@ -2058,7 +2058,7 @@ MulticopterPositionControl::task_main()
 				float pre_total = (_pressure.pressure_2+_pressure.pressure_1-_pre1_offset-_pre2_offset)/2000.0f;
 				_att_sp.thrust =math::constrain(_att_sp.thrust + math::constrain((_params.pressure_sp-pre_total)*_params.pressure_p,-0.01f,0.01f),0.0f,1.0f);
 				}
-			//}
+			}
 #endif/*__PRESSURE_1__*/
 
 			math::Matrix<3, 3> R_sp;

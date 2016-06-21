@@ -515,6 +515,7 @@ struct log_CTS_s {
 struct log_PRES_s {
 	int32_t pressure_1;
 	int32_t pressure_2;
+	int8_t overpressure;
 };
 #endif/*__PRESSURE__*/
 
@@ -600,7 +601,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
 #if __PRESSURE__
-	LOG_FORMAT(PRES, "II", "p_1,p_2"),
+	LOG_FORMAT(PRES, "IIb", "p_1,p_2,o_p"),
 #endif/*__PRESSURE__*/
 
 	/* system-level messages, ID >= 0x80 */

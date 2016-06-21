@@ -454,12 +454,17 @@ ADC::update_pressure(void)
 	_pre_t.timestamp = hrt_absolute_time();
 	_pre_t.pressure_1=TOTAL_COUNT-_filter(_samples[7].am_data/SCALE,_value_buf_1);
 	_pre_t.pressure_2=TOTAL_COUNT-_filter(_samples[6].am_data/SCALE,_value_buf_2);
-//	PX4FLOW_WARNX((nullptr,"filter %u %u",_pre_t.pressure_1,_pre_t.pressure_2));
+	if(_pre_t.pressure_1 < 0 ||_pre_t.pressure_2< 0){
+		_pre_t.overpressure = true;
+	}else{
+		_pre_t.overpressure= false;
+	}
+	PX4FLOW_WARNX((nullptr,"filter %d %d overpressure %d",_pre_t.pressure_1,_pre_t.pressure_2,_pre_t.overpressure));
 #else/*__PRESSURE_LB__*/
 	_pre_t.timestamp = hrt_absolute_time();
 	_pre_t.pressure_1 = TOTAL_COUNT-_samples[7].am_data/SCALE;
 	_pre_t.pressure_2 = TOTAL_COUNT-_samples[6].am_data/SCALE;
-//	PX4FLOW_WARNX((nullptr,"_pre_t.pressure_1  %u pressure_2 %u",_pre_t.pressure_1,_pre_t.pressure_2));
+	//PX4FLOW_WARNX((nullptr,"_pre_t.pressure_1  %u pressure_2 %u",_pre_t.pressure_1,_pre_t.pressure_2));
 #endif/*__PRESSURE_LB__*/
 
 //PX4FLOW_WARNX((nullptr,"_pre_t.pressure_1  %u %u",_pre_t.pressure_1,_pre_t.pressure_2));
