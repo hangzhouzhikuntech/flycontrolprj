@@ -246,7 +246,9 @@ dsm_config(int dsm_fd)
 
 		/* 115200bps, no parity, one stop bit */
 		tcgetattr(dsm_fd, &t);
-		cfsetspeed(&t, 115200);
+//		cfsetspeed(&t, 115200);
+		cfsetspeed(&t, 125000);
+
 		t.c_cflag &= ~(CSTOPB | PARENB);
 		tcsetattr(dsm_fd, TCSANOW, &t);
 

@@ -101,6 +101,7 @@ static const hrt_abstime lidar_valid_timeout = 1000000;	// estimate lidar distan
 static const unsigned updates_counter_len = 1000000;
 static const float max_flow = 1.0f;	// max flow value that can be used, rad/s
 
+
 extern "C" __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
 
 int position_estimator_inav_thread_main(int argc, char *argv[]);
@@ -508,6 +509,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
+
 			}
 
 			/* sensor combined */
@@ -1347,13 +1349,25 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.vx = x_est[1];
 			local_pos.y = y_est[0];
 			local_pos.vy = y_est[1];
+
 #if __DAVID_DISTANCE__
 			if(_control_mode_s.flag_sonic_sensor)
 			{
+#if __PRESSURE_1__
 				if(lidar.id == params.sensor_id){
 					local_pos.z = lidar.current_distance;
 					local_pos.distace_sensor_ok = true;
 				}
+				if((params.sensor_id == -1)&&(params.pre1_enable||params.pre2_enable)){
+					local_pos.z = z_est[0];
+					local_pos.distace_sensor_ok = true;
+				}
+#else/*__PRESSURE_1__*/
+				if(lidar.id == params.sensor_id){
+					local_pos.z = lidar.current_distance;
+					local_pos.distace_sensor_ok = true;
+				}
+#endif/*__PRESSURE_1__*/				
 			}else{
 				local_pos.z = z_est[0];
 				local_pos.distace_sensor_ok = false;

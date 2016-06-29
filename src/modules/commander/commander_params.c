@@ -321,10 +321,10 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
  * the sensor id to use
  *
  * @group ZHIKUN
- * @min 0
+ * @min -255
  * @max 255
  */
-PARAM_DEFINE_INT32(SENSOR_ID_USE, 0);
+PARAM_DEFINE_INT32(SENSOR_ID_USE, -1);
 #endif/*__DAVID_DISTANCE__*/
 #if __DAVID_DISTANCE_FIX__
 /**
@@ -347,30 +347,30 @@ PARAM_DEFINE_FLOAT(SONAR_SWITCH, 1.5f);
  * the sensor id to use
  *
  * @group ZHIKUN
- * @min 0
+ * @min -255
  * @max 255
  */
-PARAM_DEFINE_INT32(SONAR_ID_F, 0);
+PARAM_DEFINE_INT32(SONAR_ID_F, -1);
 /**
  * to select backward id of ultrasonic
  *
  * the sensor id to use
  *
  * @group ZHIKUN
- * @min 0
+ * @min -255
  * @max 255
  */
-PARAM_DEFINE_INT32(SONAR_ID_B, 0);
+PARAM_DEFINE_INT32(SONAR_ID_B, -1);
 /**
  * to select downward id of ultrasonic
  *
  * the sensor id to use
  *
  * @group ZHIKUN
- * @min 0
+ * @min -255
  * @max 255
  */
-PARAM_DEFINE_INT32(SONAR_ID_D, 0);
+PARAM_DEFINE_INT32(SONAR_ID_D, -1);
 /**
  * ultra_sonar warning distance
  *

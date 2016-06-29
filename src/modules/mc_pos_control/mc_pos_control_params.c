@@ -415,11 +415,11 @@ PARAM_DEFINE_FLOAT(PRESSURE_P, 0.0f);
  * pressure_so
  *
  * @min 0.0
- * @max 10000.0
- * @decimal 2
+ * @max 1000
+ * @decimal 0
  * @group ZHIKUN
 */
-PARAM_DEFINE_FLOAT(PRESSURE_SP, 0.0f);
+PARAM_DEFINE_INT32(PRESSURE_SP,0);
 /**
  * proll_p
  *
@@ -429,5 +429,35 @@ PARAM_DEFINE_FLOAT(PRESSURE_SP, 0.0f);
  * @group ZHIKUN
 */
 PARAM_DEFINE_FLOAT(PROLL_P, 0.0f);
-#endif/*__PRESSURE_1__*/	
-
+#endif/*__PRESSURE_1__*/
+#if	__MANUAL_DZ__
+/**
+ * manual_r_dz
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @group ZHIKUN
+*/
+PARAM_DEFINE_FLOAT(MR_DZ, 0.0f);
+#endif/*__MANUAL_DZ__*/
+#if __PRESSURE_PARAM__
+/**
+ * pressure1_enable
+ *
+ * @min 0.0
+ * @max 1
+ * @decimal 0
+ * @group ZHIKUN
+*/
+PARAM_DEFINE_INT32(PRE1_EN, 0);
+/**
+ * presure2_enable
+ *
+ * @min 0.0
+ * @max 1
+ * @decimal 0
+ * @group ZHIKUN
+*/
+PARAM_DEFINE_INT32(PRE2_EN, 0);
+#endif/*__PRESSURE_PARAM__*/

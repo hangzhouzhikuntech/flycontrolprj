@@ -65,6 +65,8 @@
 #include "commander_helper.h"
 #include "DevMgr.hpp"
 
+#include "qiaoliang/qiaoliang_define.h"
+
 using namespace DriverFramework;
 
 /* oddly, ERROR is not defined for c++ */

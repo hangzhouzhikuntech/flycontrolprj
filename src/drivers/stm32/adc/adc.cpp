@@ -459,7 +459,7 @@ ADC::update_pressure(void)
 	}else{
 		_pre_t.overpressure= false;
 	}
-	PX4FLOW_WARNX((nullptr,"filter %d %d overpressure %d",_pre_t.pressure_1,_pre_t.pressure_2,_pre_t.overpressure));
+//	PX4FLOW_WARNX((nullptr,"filter %d %d overpressure %d",_pre_t.pressure_1,_pre_t.pressure_2,_pre_t.overpressure));
 #else/*__PRESSURE_LB__*/
 	_pre_t.timestamp = hrt_absolute_time();
 	_pre_t.pressure_1 = TOTAL_COUNT-_samples[7].am_data/SCALE;

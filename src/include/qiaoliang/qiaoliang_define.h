@@ -27,18 +27,23 @@
 #define __DAVID_NAV_LOG__  						(1)
 #define __DAVID_YAW_FIX__  						(1)
 #define __ATT_PROTECT_FIX__  					(1)
+#define __MANUAL_DZ__  							(1)
+#define __ARMED_FIX__  							(1)
 
-#define __DAVID_CHAO_WARING__  					(0)
+
+#define __DAVID_CHAO_WARING__  					(1)
 #define __DAVID_ARMED_FIX__  					(1)
+
 
 #define __FMU_CONFIG__  						(1)
 #define __FMU_PMW_YUNTAI__ 						(1)
 #define __MC_POS_FIX__ 							(1)
-#define __LAND_FIX__ 							(0)
+#define __LAND_FIX__ 							(1)
 
-#define __PRESSURE__ 							(0)
+#define __PRESSURE__ 							(1)
+#define __PRESSURE_LB__ 						(1)
+#define __PRESSURE_PARAM__ 						(1)
 #define __PRESSURE_1__ 							(0)
-#define __PRESSURE_LB__ 						(0)
 
 #define __POS_MANAUL__ 							(0)
 #define __BATT_I2C__ 							(0)

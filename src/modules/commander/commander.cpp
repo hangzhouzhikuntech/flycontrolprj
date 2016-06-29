@@ -1070,6 +1070,10 @@ int commander_thread_main(int argc, char *argv[])
 #if __DAVID_DISTANCE__
 	param_t _param_sensor_id= param_find("SENSOR_ID_USE");
 #endif/*__DAVID_DISTANCE__*/
+#if __PRESSURE_1__
+	param_t _param_pre1_enable= param_find("PRE1_EN");
+	param_t _param_pre2_enable= param_find("PRE2_EN");
+#endif/*__PRESSURE_1__*/
 #if __DAVID_DISTANCE_FIX__
 	param_t _param_sonar_switch= param_find("SONAR_SWITCH");
 #endif/*__DAVID_DISTANCE_FIX__*/
@@ -1389,6 +1393,7 @@ int commander_thread_main(int argc, char *argv[])
 	struct distance_sensor_s  distance_sensor_rece;
 	memset(&distance_sensor_rece, 0, sizeof(distance_sensor_rece));
 #endif/*__DAVID_DISTANCE__*/
+
 	/* Subscribe to vtol vehicle status topic */
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
 	//struct vtol_vehicle_status_s vtol_status;
@@ -1453,6 +1458,10 @@ int commander_thread_main(int argc, char *argv[])
 #if __DAVID_DISTANCE__
 	int32_t	sensor_id;
 #endif/*__DAVID_DISTANCE__*/
+#if __PRESSURE_1__
+	bool pre1_enable;
+	bool pre2_enable;
+#endif/*__PRESSURE_1__*/
 #if __DAVID_DISTANCE_FIX__
 	float sonar_switch;
 #endif/*__DAVID_DISTANCE_FIX__*/
@@ -1557,6 +1566,10 @@ int commander_thread_main(int argc, char *argv[])
 #if __DAVID_DISTANCE__
 			param_get(_param_sensor_id, &sensor_id);
 #endif/*__DAVID_DISTANCE__*/
+#if __PRESSURE_1__
+			param_get(_param_pre1_enable, &pre1_enable);
+			param_get(_param_pre2_enable, &pre2_enable);
+#endif/*__PRESSURE_1__*/
 #if __DAVID_DISTANCE_FIX__
 			param_get(_param_sonar_switch, &sonar_switch);
 #endif/*__DAVID_DISTANCE_FIX__*/
@@ -2119,7 +2132,6 @@ int commander_thread_main(int argc, char *argv[])
 				}
 			}
 		}
-
 #if __DAVID_DISTANCE__
 		if(armed.armed){
 			orb_check(distance_sensor_sub, &updated);
@@ -2128,7 +2140,14 @@ int commander_thread_main(int argc, char *argv[])
 				if(distance_sensor_rece.id == sensor_id &&distance_sensor_rece.current_distance< sonar_switch && distance_sensor_rece.current_distance>0.0f)
 				{
 					status.distance_sensor_ok = true;
-				}else{
+				}
+#if __PRESSURE_1__
+				else if((pre1_enable||pre2_enable)&&(sensor_id ==-1)){
+					//PX4FLOW_WARNX((nullptr,"--aa--presure_distance_sensor_ok is ok"));
+					status.distance_sensor_ok = true;
+				}
+#endif/*__PRESSURE_1__*/
+				else{
 					status.distance_sensor_ok = false;
 				}
 #if __DAVID_CHAO_WARING__
@@ -2150,6 +2169,14 @@ int commander_thread_main(int argc, char *argv[])
 				}
 #endif/*__DAVID_CHAO_WARING__*/
 			}
+#if __PRESSURE_1__
+				else if((pre1_enable||pre2_enable)&&(sensor_id ==-1)){					
+					//PX4FLOW_WARNX((nullptr,"--bb--presure_distance_sensor_ok is ok"));
+					status.distance_sensor_ok = true;
+					
+				}
+#endif/*__PRESSURE_1__*/
+
 		}else{
 			status.distance_sensor_ok = false;
 		}
@@ -2323,7 +2350,11 @@ int commander_thread_main(int argc, char *argv[])
 			    	status.main_state == vehicle_status_s::MAIN_STATE_STAB ||
 			    	status.main_state == vehicle_status_s::MAIN_STATE_RATTITUDE ||
 			    	status.condition_landed) &&
-			    sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
+#if __ARMED_FIX__
+#else/*__ARMED_FIX__*/
+			   		 sp_man.r < -STICK_ON_OFF_LIMIT && 
+#endif/*__ARMED_FIX__*/
+					sp_man.z < 0.1f) {
 
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
@@ -2959,6 +2990,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	}
 
 	/* offboard and RTL switches off or denied, check main mode switch */
+	//PX4FLOW_WARNX((nullptr,"sp_man->mode_switch %d",sp_man->mode_switch));
 	switch (sp_man->mode_switch) {
 	case manual_control_setpoint_s::SWITCH_POS_NONE:
 		res = TRANSITION_NOT_CHANGED;

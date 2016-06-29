@@ -77,7 +77,10 @@ struct position_estimator_inav_params {
 #if __RC_LOSS_TEST__
 	float loss_epvh;
 #endif/*__RC_LOSS_TEST__*/
-
+#if __PRESSURE_1__
+	bool pre1_enable;
+	bool pre2_enable;
+#endif/*__PRESSURE_1__*/
 };
 
 struct position_estimator_inav_param_handles {
@@ -115,6 +118,10 @@ struct position_estimator_inav_param_handles {
 #if __RC_LOSS_TEST__
 	param_t loss_epvh;
 #endif/*__RC_LOSS_TEST__*/
+#if __PRESSURE_1__
+	param_t pre1_enable;
+	param_t pre2_enable;
+#endif/*__PRESSURE_1__*/
 
 };
 
