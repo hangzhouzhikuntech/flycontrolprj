@@ -127,6 +127,11 @@
 #if __PRESSURE__
 #include <uORB/topics/pressure.h>
 #endif/*__PRESSURE__*/
+#if __ALT_CONTROL_TEST__
+#include <uORB/topics/vehicle_test.h>
+#endif/*__ALT_CONTROL_TEST__*/
+
+#include "qiaoliang/qiaoliang_define.h"
 
 #define PX4_EPOCH_SECS 1234567890L
 
@@ -1103,7 +1108,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct control_state_s ctrl_state;
 #if __PRESSURE__
 		struct pressure_s pressure;
-#endif/*__PRESSURE__*/			
+#endif/*__PRESSURE__*/
+#if __ALT_CONTROL_TEST__
+		struct vehicle_test_s vehicle_test;
+#endif/*__ALT_CONTROL_TEST__*/
+
 		struct ekf2_innovations_s innovations;
 	} buf;
 
@@ -1157,6 +1166,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 #if	__PRESSURE__
 			struct log_PRES_s log_PRES;
 #endif/*__PRESSURE__*/
+#if __ALT_CONTROL_TEST__
+			struct log_TEST_s log_TEST;
+#endif/*__ALT_CONTROL_TEST__*/
+
 			struct log_EST4_s log_INO1;
 			struct log_EST5_s log_INO2;
 		} body;
@@ -1205,7 +1218,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int ctrl_state_sub;
 #if __PRESSURE__
 		int pressure_sub;
-#endif/*__PRESSURE__*/	
+#endif/*__PRESSURE__*/
+#if __ALT_CONTROL_TEST__
+		int vehicle_test_sub;
+#endif/*__ALT_CONTROL_TEST__*/
 		int innov_sub;
 	} subs;
 
@@ -1533,6 +1549,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_ATSP.pitch_sp = buf.att_sp.pitch_body;
 			log_msg.body.log_ATSP.yaw_sp = buf.att_sp.yaw_body;
 			log_msg.body.log_ATSP.thrust_sp = buf.att_sp.thrust;
+#if __PRESSURE_1__
+			log_msg.body.log_ATSP.thrust_pre = buf.att_sp.thrust_pre;
+#endif/*__PRESSURE_1__*/
 			log_msg.body.log_ATSP.q_w = buf.att_sp.q_d[0];
 			log_msg.body.log_ATSP.q_x = buf.att_sp.q_d[1];
 			log_msg.body.log_ATSP.q_y = buf.att_sp.q_d[2];
@@ -1602,7 +1621,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 											  (buf.local_pos.v_z_valid ? 8 : 0) |
 											  (buf.local_pos.xy_global ? 16 : 0) |
 											  (buf.local_pos.z_global ? 32 : 0);
-			log_msg.body.log_LPOS.ground_dist_flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
+			
+			log_msg.body.log_LPOS.ground_dist_flags = 
+#if __DAVID_DISTANCE__
+			buf.local_pos.distace_sensor_ok;
+#else
+			(buf.local_pos.dist_bottom_valid ? 1 : 0);
+#endif/*__DAVID_DISTANCE__*/
 			log_msg.body.log_LPOS.eph = buf.local_pos.eph;
 			log_msg.body.log_LPOS.epv = buf.local_pos.epv;
 			LOGBUFFER_WRITE_AND_COUNT(LPOS);
@@ -1621,6 +1646,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_LPSP.acc_x = buf.local_pos_sp.acc_x;
 			log_msg.body.log_LPSP.acc_y = buf.local_pos_sp.acc_y;
 			log_msg.body.log_LPSP.acc_z = buf.local_pos_sp.acc_z;
+ 			
 			LOGBUFFER_WRITE_AND_COUNT(LPSP);
 		}
 
@@ -1762,7 +1788,24 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_BATT.voltage = buf.battery.voltage_v;
 			log_msg.body.log_BATT.voltage_filtered = buf.battery.voltage_filtered_v;
 			log_msg.body.log_BATT.current = buf.battery.current_a;
-			log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
+			log_msg.body.log_BATT.discharged = buf.battery.remaining_mah;
+#if __BATT_I2C__
+			log_msg.body.log_BATT.v1 = buf.battery.voltage_v1;
+			log_msg.body.log_BATT.v2 = buf.battery.voltage_v2;
+			log_msg.body.log_BATT.v3 = buf.battery.voltage_v3;
+			log_msg.body.log_BATT.v4 = buf.battery.voltage_v4;
+			log_msg.body.log_BATT.v5 = buf.battery.voltage_v5;
+			log_msg.body.log_BATT.v6 = buf.battery.voltage_v6;
+			log_msg.body.log_BATT.cycle_count = buf.battery.cycle_count;
+			log_msg.body.log_BATT.battery_status = buf.battery.battery_status;
+			log_msg.body.log_BATT.temperature1 = buf.battery.temperature1;
+			log_msg.body.log_BATT.RelativeStateOfCharge = buf.battery.RelativeStateOfCharge;
+//PX4FLOW_WARNX((nullptr,"voltage %.2f current_a %.2f rm %.2f v1-4 %.2f %.2f %.2f %.2f",(double)buf.battery.voltage_v,(double)buf.battery.current_a,(double)buf.battery.remaining_mah
+//				,(double)buf.battery.voltage_v1,(double)buf.battery.voltage_v2,(double)buf.battery.voltage_v3,(double)buf.battery.voltage_v4));
+//PX4FLOW_WARNX((nullptr,"cycle_count %d battery_status %d temperature1 %.2f RelativeStateOfCharge %d",buf.battery.cycle_count,buf.battery.battery_status,(double)buf.battery.temperature1,buf.battery.RelativeStateOfCharge));
+			
+#endif/*__BATT_I2C__*/
+
 			LOGBUFFER_WRITE_AND_COUNT(BATT);
 		}
 
@@ -1943,6 +1986,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 				LOGBUFFER_WRITE_AND_COUNT(PRES);
 			}
 #endif/*__PRESSURE__*/
+#if __ALT_CONTROL_TEST__
+			if (copy_if_updated(ORB_ID(vehicle_test), &subs.vehicle_test_sub, &buf.vehicle_test)) {
+				log_msg.msg_type = LOG_TEST_MSG;
+				log_msg.body.log_TEST.alt_control_enable = buf.vehicle_test.alt_control_enable;
+				LOGBUFFER_WRITE_AND_COUNT(TEST);
+			}
+#endif/*__ALT_CONTROL_TEST__*/
 
 		/* signal the other thread new data, but not yet unlock */
 		if (logbuffer_count(&lb) > MIN_BYTES_TO_WRITE) {

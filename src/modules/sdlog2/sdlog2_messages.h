@@ -74,6 +74,9 @@ struct log_ATSP_s {
 	float pitch_sp;
 	float yaw_sp;
 	float thrust_sp;
+#if __PRESSURE_1__
+	float thrust_pre;
+#endif/*__PRESSURE_1__*/	
 	float q_w;
 	float q_x;
 	float q_y;
@@ -299,6 +302,18 @@ struct log_BATT_s {
 	float voltage_filtered;
 	float current;
 	float discharged;
+#if __BATT_I2C__		
+	float v1;
+	float v2;
+	float v3;
+	float v4;
+	float v5;
+	float v6;
+	uint16_t cycle_count;
+	uint16_t battery_status;
+	float temperature1;
+	uint16_t RelativeStateOfCharge;	
+#endif/*__BATT_I2C__*/
 };
 
 /* --- DIST - RANGE SENSOR DISTANCE --- */
@@ -518,6 +533,12 @@ struct log_PRES_s {
 	int8_t overpressure;
 };
 #endif/*__PRESSURE__*/
+#if __ALT_CONTROL_TEST__
+#define LOG_TEST_MSG 49
+struct log_TEST_s {
+	uint8_t alt_control_enable;
+};
+#endif/*__ALT_CONTROL_TEST__*/
 
 #define LOG_OUT1_MSG 50
 
@@ -548,13 +569,18 @@ struct log_PARM_s {
 static const struct log_format_s log_formats[] = {
 	/* business-level messages, ID < 0x80 */
 	LOG_FORMAT(ATT, "fffffffffffff",	"qw,qx,qy,qz,Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
+#if __PRESSURE_1__
+	LOG_FORMAT(ATSP, "fffffffff",		"RollSP,PitchSP,YawSP,ThrustSP,Thrus_pre,qw,qx,qy,qz"),
+#else	
 	LOG_FORMAT(ATSP, "ffffffff",		"RollSP,PitchSP,YawSP,ThrustSP,qw,qx,qy,qz"),
+#endif
 	LOG_FORMAT_S(IMU, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(IMU1, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(IMU2, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(SENS, SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
 	LOG_FORMAT_S(AIR1, SENS, "fffff",	"BaroPa,BaroAlt,BaroTmp,DiffPres,DiffPresF"),
-	LOG_FORMAT(LPOS, "ffffffffLLfBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,GFlg,EPH,EPV"),
+	LOG_FORMAT(LPOS, "ffffffffLLfBBff",	"X,Y,Z,Disst,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,GFlg,EPH,EPV"),
+	LOG_FORMAT(LPSP, "ffffffffff",		"X,Y,Z,Yaw,VX,VY,VZ,AX,AY,AZ"),
 	LOG_FORMAT(LPSP, "ffffffffff",		"X,Y,Z,Yaw,VX,VY,VZ,AX,AY,AZ"),
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
@@ -576,7 +602,12 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPSP, "BLLffBfbf",		"NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHffiffH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
+
+#if __BATT_I2C__
+	LOG_FORMAT(BATT, "ffffffffffHHfH",		"V,VFilt,C,rm,v1,v2,v3,v4,v5,v6,cc,bs,temp,rso"),
+#else
 	LOG_FORMAT(BATT, "ffff",		"V,VFilt,C,Discharged"),
+#endif/*__BATT_I2C__*/
 	LOG_FORMAT(DIST, "BBBff",			"Id,Type,Orientation,Distance,Covariance"),
 	LOG_FORMAT_S(TEL0, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL1, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
@@ -603,6 +634,9 @@ static const struct log_format_s log_formats[] = {
 #if __PRESSURE__
 	LOG_FORMAT(PRES, "IIb", "p_1,p_2,o_p"),
 #endif/*__PRESSURE__*/
+#if __ALT_CONTROL_TEST__
+	LOG_FORMAT(TEST, "B", "CT"),
+#endif/*__ALT_CONTROL_TEST__*/
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

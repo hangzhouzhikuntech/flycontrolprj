@@ -26,6 +26,7 @@ float32[4] q_e					# Attitude error in quaternion
 bool q_e_valid					# Set to true if quaternion error vector is valid
 
 float32 thrust					# Thrust in Newton the power system should generate
+float32 thrust_pre					# Thrust pressure
 
 bool roll_reset_integral			# Reset roll integral part (navigation logic change)
 bool pitch_reset_integral			# Reset pitch integral part (navigation logic change)

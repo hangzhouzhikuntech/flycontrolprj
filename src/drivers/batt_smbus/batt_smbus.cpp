@@ -722,13 +722,10 @@ BATT_SMBUS::cycle()
 
 		// read current
 		//read current value
-		read_regU4(BATT_SMBUS_CURRENT, tmpU4);
-		
-		if(tmpU4 & 0x80000000){
-			new_report.current_a = (float)(-(~tmpU4 + 1));
-		}else{
-			new_report.current_a = (float)tmpU4;
-		}
+		read_reg4(BATT_SMBUS_CURRENT, tmp4);
+
+		new_report.current_a = ((float)tmp4)/ 1000.0f;
+
 		
 		if (read_reg(BATT_SMBUS_TEMP, tmp) == OK){
 			new_report.temperature1 = (float)((float)tmp - 2731.0f) / 10.0f;
@@ -758,7 +755,9 @@ BATT_SMBUS::cycle()
 		}
 		
 
-	//	PX4FLOW_WARNX((nullptr,"new_report.voltage_v %.2f current_a %.2f",(double)new_report.voltage_v,(double)new_report.current_a));
+		//PX4FLOW_WARNX((nullptr,"new_report.voltage_v %.2f voltage_v1 %.2f %.2f %.2f",(double)new_report.voltage_v,(double)new_report.voltage_v1,(double)new_report.voltage_v2,(double)new_report.voltage_v3));
+//PX4FLOW_WARNX((nullptr,"new_report.current_a %.2f cycle_count %d RelativeStateOfCharge %u re %.2f",(double)new_report.current_a,new_report.cycle_count,new_report.RelativeStateOfCharge,(double)new_report.remaining_mah));
+		
 #else/*__BATT_I2C__*/
 		uint8_t buff[6];
 		if (read_block(BATT_SMBUS_CURRENT, buff, 4, false) == 4) {

@@ -282,3 +282,8 @@ ORB_DEFINE(ekf2_innovations, struct ekf2_innovations_s);
 #include "topics/pressure.h"
 ORB_DEFINE(pressure, struct pressure_s);
 #endif/*__PRESSURE__*/
+
+#if __ALT_CONTROL_TEST__
+#include "topics/vehicle_test.h"
+ORB_DEFINE(vehicle_test, struct vehicle_test_s);
+#endif/*__ALT_CONTROL_TEST__*/
