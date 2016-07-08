@@ -411,10 +411,7 @@ int inav_parameters_init(struct position_estimator_inav_param_handles *h)
 #if __RC_LOSS_TEST__
 	h->loss_epvh = param_find("LOSS_EPVH");
 #endif/*__RC_LOSS_TEST__*/
-#if __PRESSURE_1__
-	h->pre1_enable = param_find("PRE1_EN");
-	h->pre2_enable = param_find("PRE2_EN");
-#endif/*__PRESSURE_1__*/
+
 
 	return 0;
 }
@@ -456,10 +453,6 @@ int inav_parameters_update(const struct position_estimator_inav_param_handles *h
 #if __RC_LOSS_TEST__
 	param_get(h->loss_epvh, &(p->loss_epvh));
 #endif/*__RC_LOSS_TEST__*/
-#if __PRESSURE_1__
-	param_get(h->pre1_enable, &(p->pre1_enable));
-	param_get(h->pre2_enable, &(p->pre2_enable));
-#endif/*__PRESSURE_1__*/
 	return 0;
 
 }

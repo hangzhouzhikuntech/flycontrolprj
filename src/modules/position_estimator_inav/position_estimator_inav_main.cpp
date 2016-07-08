@@ -82,6 +82,9 @@
 #if __DAVID_DISTANCE__
 #include <uORB/topics/vehicle_control_mode.h>
 #endif/*__DAVID_DISTANCE__*/
+#if __ALT_CONTROL_TEST__
+#include <uORB/topics/vehicle_test.h>
+#endif/*__ALT_CONTROL_TEST__*/
 
 #define MIN_VALID_W 0.00001f
 #define PUB_INTERVAL 10000	// limit publish rate to 100 Hz
@@ -384,6 +387,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	struct vehicle_control_mode_s _control_mode_s;		/**< distance estimate */
 	memset(&_control_mode_s, 0, sizeof(_control_mode_s));
 #endif/*__DAVID_DISTANCE__*/	
+#if __ALT_CONTROL_TEST__
+	struct vehicle_test_s _vehicle_test_s;
+	memset(&_vehicle_test_s, 0, sizeof(_vehicle_test_s));
+#endif/*__ALT_CONTROL_TEST__*/
 
 	/* subscribe */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -400,7 +407,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 #if __DAVID_DISTANCE__
 	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 #endif/*__DAVID_DISTANCE__*/
-
+#if __ALT_CONTROL_TEST__
+	int _vehicle_test_sub = orb_subscribe(ORB_ID(vehicle_test));
+#endif/*__ALT_CONTROL_TEST__*/
 	/* advertise */
 	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
 	orb_advert_t vehicle_global_position_pub = NULL;
@@ -819,6 +828,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &_control_mode_s);
 			}
 #endif/*__DAVID_DISTANCE__*/
+#if __ALT_CONTROL_TEST__
+			orb_check(_vehicle_test_sub, &updated);
+			if(updated){
+				orb_copy(ORB_ID(vehicle_test), _vehicle_test_sub, &_vehicle_test_s);
+			}
+
+#endif/*__ALT_CONTROL_TEST__*/
 
 			/* vehicle mocap position */
 			orb_check(att_pos_mocap_sub, &updated);
@@ -1349,6 +1365,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.vx = x_est[1];
 			local_pos.y = y_est[0];
 			local_pos.vy = y_est[1];
+	//		PX4FLOW_WARNX((nullptr,"_vehicle_test_s.pre1_enable %d %d",_vehicle_test_s.pre1_enable,_vehicle_test_s.pre2_enable));
 
 #if __DAVID_DISTANCE__
 			if(_control_mode_s.flag_sonic_sensor)
@@ -1358,7 +1375,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					local_pos.z = lidar.current_distance;
 					local_pos.distace_sensor_ok = true;
 				}
-				if((params.sensor_id == -1)&&(params.pre1_enable||params.pre2_enable)){
+				if((params.sensor_id == -1)&&(_vehicle_test_s.pre1_enable||_vehicle_test_s.pre2_enable)){
 					local_pos.z = z_est[0];
 					local_pos.distace_sensor_ok = true;
 				}
