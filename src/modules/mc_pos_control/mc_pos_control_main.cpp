@@ -328,9 +328,10 @@ private:
 #if __PRESSURE_1__
 	float _pressure_delta;
 	float _pressure_sp;
-#endif/*__PRESSURE_1__*/	
-	float _takeoff_thrust_sp;
+	float _thrust_sp_record;
+#endif
 
+	float _takeoff_thrust_sp;
 
 	/**
 	 * Update our local parameter cache.
@@ -487,6 +488,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 #if __PRESSURE_1__
 	_pressure_delta(0),
 	_pressure_sp(0),
+	_thrust_sp_record(0),
 #endif/*__PRESSURE_1__*/	
 
 
@@ -1044,6 +1046,15 @@ MulticopterPositionControl::control_manual(float dt)
 			_vel_sp(2) = req_vel_sp_scaled(2);
 			_pos_sp(2) = _pos(2);
 		}
+
+#if __PRESSURE_1__
+		if(_local_pos.distace_sensor_ok&&(_params.pre1_enable ||_params.pre2_enable))
+		{	
+//				_vel_sp(2) = _vel(2);
+				_pos_sp(2) = _pos(2);
+		}
+#endif/*__PRESSURE_1__*/
+
 	}
 #if __ALT_CONTROL_TEST__
 
@@ -1488,6 +1499,7 @@ MulticopterPositionControl::task_main()
 #endif/*__ARMED_FIX_1__*/
 #if __PRESSURE_1__
 			_att_sp.thrust_pre = 0;
+			_thrust_sp_record = 0;
 #endif/*__PRESSURE_1__*/
 		}
 #endif/*__DAVID_YAW_FIX__*/
@@ -1779,14 +1791,17 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* velocity error */
+#if __PRESSURE_1__
+					if(_local_pos.distace_sensor_ok&&(_params.pre1_enable ||_params.pre2_enable))
+					{
+						_vel_sp(2)=_vel(2);
+					}
+#endif/*__PRESSURE_1__*/
+
 					math::Vector<3> vel_err = _vel_sp - _vel;
 #if __DAVID_DISTANCE__
 
-#if __PRESSURE_1__
-					if(_local_pos.distace_sensor_ok&&((_pos(2)<_params.sensor_limit && (_params.sensor_id !=-1))||(_params.pre1_enable ||_params.pre2_enable)))
-#else
 					if(_local_pos.distace_sensor_ok&&_pos(2)<_params.sensor_limit && (_params.sensor_id !=-1))
-#endif/*__PRESSURE_1__*/
 					{
 						vel_err(2)=0;
 					}
@@ -1794,6 +1809,14 @@ MulticopterPositionControl::task_main()
 					/* thrust vector in NED frame */
 					// TODO?: + _vel_sp.emult(_params.vel_ff)
 					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
+#if __PRESSURE_1__
+					if(_local_pos.distace_sensor_ok&&(_params.pre1_enable ||_params.pre2_enable))
+					{
+						thrust_sp(2) = _thrust_sp_record;
+					}else{
+						_thrust_sp_record = thrust_sp(2);
+					}
+#endif/*__PRESSURE_1__*/
 
 					if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 							&& !_takeoff_jumped && !_control_mode.flag_control_manual_enabled) {
