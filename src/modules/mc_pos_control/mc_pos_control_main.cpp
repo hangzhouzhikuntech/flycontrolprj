@@ -158,6 +158,9 @@ private:
 	int32_t _pre2_offset;
 	bool _wait_pressure;
 #endif/*__PRESSURE_1__*/
+#if __PRESSURE_2__
+	int _pre_delta;
+#endif/*__PRESSURE_2__*/
 #if __ARMED_FIX_1__
 	int32_t _lock_count;
 #endif/*__ARMED_FIX_1__*/
@@ -245,6 +248,10 @@ private:
 		param_t pressure_sp;
 		param_t proll_p;
 #endif/*__PRESSURE_1__*/
+#if __PRESSURE_2__
+		param_t pressure_pd;
+#endif/*__PRESSURE_2__*/
+
 #if	__MANUAL_DZ__
 		param_t manual_r_dz;
 #endif/*__MANUAL_DZ__*/
@@ -282,6 +289,9 @@ private:
 		float pressure_p;
 		int pressure_sp;
 		float proll_p;
+#if __PRESSURE_2__
+		float pressure_pd;
+#endif/*__PRESSURE_2__*/
 #endif/*__PRESSURE_1__*/
 #if	__MANUAL_DZ__
 		float manual_r_dz;
@@ -444,6 +454,10 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_pre2_offset(0),
 	_wait_pressure(true),
 #endif/*__PRESSURE_1__*/
+#if __PRESSURE_2__
+	_pre_delta(0),
+#endif/*__PRESSURE_2__*/
+
 #if __ARMED_FIX_1__
 	_lock_count(0),
 #endif/*__ARMED_FIX_1__*/
@@ -566,6 +580,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.pressure_p = param_find("PRESSURE_P");
 	_params_handles.pressure_sp = param_find("PRESSURE_SP");
 	_params_handles.proll_p = param_find("PROLL_P");
+#if __PRESSURE_2__
+	_params_handles.pressure_pd = param_find("PRESSURE_PD");
+#endif/*__PRESSURE_2__*/
 #endif/*__PRESSURE_1__*/
 #if	__MANUAL_DZ__
 	_params_handles.manual_r_dz = param_find("MR_DZ");
@@ -684,6 +701,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.pressure_p, &_params.pressure_p);
 		param_get(_params_handles.pressure_sp, &_params.pressure_sp);
 		param_get(_params_handles.proll_p, &_params.proll_p);
+#if __PRESSURE_2__
+		param_get(_params_handles.pressure_pd, &_params.pressure_pd);
+#endif/*__PRESSURE_2__*/
 #endif/*__PRESSURE_1__*/
 #if	__MANUAL_DZ__
 		param_get(_params_handles.manual_r_dz, &_params.manual_r_dz);
@@ -804,11 +824,11 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(pressure), _pressue_sp_sub, &_pressure);
-		if(_pressure.pressure_1 == 2000){
-			mavlink_log_info(_mavlink_fd,"the pressure_1 is overpressure;");
+		if(_pressure.overpressure1){
+			_pressure.pressure_1 =_pre1_offset;
 		}
-		if( _pressure.pressure_2 == 2000){
-			mavlink_log_info(_mavlink_fd,"the pressure_2 is overpressure;");
+		if( _pressure.overpressure2){
+			_pressure.pressure_2 = _pre2_offset;
 		}
 			
 #if __PRESSURE_PARAM__
@@ -1063,7 +1083,6 @@ MulticopterPositionControl::control_manual(float dt)
 		_vehicle_test_sp.pre1_enable = _params.pre1_enable;
 		_vehicle_test_sp.pre2_enable = _params.pre2_enable;
 		
-
 		if (_vehicle_test_pub != nullptr) {
 				orb_publish(ORB_ID(vehicle_test), _vehicle_test_pub, &_vehicle_test_sp);
 
@@ -1503,6 +1522,7 @@ MulticopterPositionControl::task_main()
 #endif/*__PRESSURE_1__*/
 		}
 #endif/*__DAVID_YAW_FIX__*/
+//PX4FLOW_WARNX((nullptr,"_params.pressure_pd %.5f",(double)_params.pressure_pd));
 
 #if __DAVID_YAW_FIX__
 		if ((_control_mode.flag_control_altitude_enabled ||
@@ -1799,24 +1819,45 @@ MulticopterPositionControl::task_main()
 #endif/*__PRESSURE_1__*/
 
 					math::Vector<3> vel_err = _vel_sp - _vel;
-#if __DAVID_DISTANCE__
 
+#if __DAVID_DISTANCE__
 					if(_local_pos.distace_sensor_ok&&_pos(2)<_params.sensor_limit && (_params.sensor_id !=-1))
 					{
 						vel_err(2)=0;
 					}
 #endif/*__DAVID_DISTANCE__*/
+
 					/* thrust vector in NED frame */
 					// TODO?: + _vel_sp.emult(_params.vel_ff)
 					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
 #if __PRESSURE_1__
-					if(_local_pos.distace_sensor_ok&&(_params.pre1_enable ||_params.pre2_enable))
+//PX4FLOW_WARNX((nullptr,"aaa--distace_sensor_ok %d _wait_pressure %d _params %d %d",_local_pos.distace_sensor_ok,_wait_pressure,_params.pre1_enable,_params.pre2_enable));
+					if(_local_pos.distace_sensor_ok&&(_params.pre1_enable ||_params.pre2_enable)&&!_wait_pressure)
 					{
-						thrust_sp(2) = _thrust_sp_record;
-					}else{
+							thrust_sp(2) = _thrust_sp_record;
+							int pre_total = _pressure.pressure_2+_pressure.pressure_1-_pre1_offset-_pre2_offset;
+							float thrust_pre= math::constrain((float)(pre_total-_params.pressure_sp)/2000.0f*_params.pressure_p,-0.5f,0.5f);
+#if __PRESSURE_2__
+							float thrust_delta = math::constrain((float)(pre_total-_pre_delta)/dt/2000.0f*_params.pressure_pd,-0.5f,0.5f);
+							thrust_sp(2) = math::constrain(thrust_sp(2) + thrust_pre + thrust_delta,-10.0f,0.0f);
+							_pre_delta = pre_total;
+#else
+							thrust_sp(2) = math::constrain(thrust_sp(2) + thrust_pre,-10.0f,0.0f);
+#endif/*__PRESSURE_2__*/							
+							_thrust_sp_record = thrust_sp(2);
+							_att_sp.thrust_pre = thrust_pre;
+							
+							//PX4FLOW_WARNX((nullptr,"_att_sp.thrust_pre %.2f",(double)_att_sp.thrust_pre));
+					}
+					
+					if(!_local_pos.distace_sensor_ok)
+					{
 						_thrust_sp_record = thrust_sp(2);
+						_att_sp.thrust_pre =0;
+						
 					}
 #endif/*__PRESSURE_1__*/
+
 
 					if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 							&& !_takeoff_jumped && !_control_mode.flag_control_manual_enabled) {
@@ -2165,7 +2206,15 @@ MulticopterPositionControl::task_main()
 
 				_att_sp.roll_body = _manual.y * _params.man_roll_max;
 				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
-
+				
+#if __PRESSURE_1__
+				if(_local_pos.distace_sensor_ok&&(_params.pre1_enable&&_params.pre2_enable)&&!_wait_pressure){
+						int pre_delta1=_pressure.pressure_1-_pre1_offset;
+						int pre_delta2=_pressure.pressure_2-_pre2_offset;
+						int pre_delta = pre_delta1-pre_delta2;
+						_att_sp.roll_body +=math::constrain(pre_delta/1000.0f*_params.proll_p,-0.1f,0.1f);
+				}
+#endif/*__PRESSURE_1__*/
 			}
 
 			/* control throttle directly if no climb rate controller is active */
@@ -2178,27 +2227,7 @@ MulticopterPositionControl::task_main()
 					_att_sp.thrust = math::max(_att_sp.thrust, _manual_thr_min.get());
 				}
 			}
-#if __PRESSURE_1__
-			if(_local_pos.distace_sensor_ok&&!_wait_pressure){
-			   if(!_wait_pressure && !_pressure.overpressure){// _wait_pressure is average pressure & overpressue is judge is the pressure is over 5kg
-			   		if(_params.pre1_enable &&_params.pre2_enable){
-						int pre_delta=_pressure.pressure_2-_pressure.pressure_1;
-						if(fabsf(pre_delta)>DELTA_SCALE*fabsf(_pre1_offset-_pre2_offset)){
-							_att_sp.roll_body +=math::constrain(pre_delta/1000.0f*_params.proll_p,-0.1f,0.1f);
-				//		PX4FLOW_WARNX((nullptr,"-aa-fabsf(pre_delta) %.2f _pre1_offset-_pre2_offset %.2f _pre1_offset %u %u",(double)fabsf(pre_delta),(double)(DELTA_SCALE*fabsf(_pre1_offset-_pre2_offset)),_pre1_offset,_pre2_offset));
-						}else{
-							_att_sp.roll_body +=0;
-				//		PX4FLOW_WARNX((nullptr,"-bb-fabsf(pre_delta) %.2f _pre1_offset-_pre2_offset %.2f _pre1_offset %u %u",(double)fabsf(pre_delta),(double)(DELTA_SCALE*fabsf(_pre1_offset-_pre2_offset)),_pre1_offset,_pre2_offset));
-						}
-					}
-			   		if(_params.pre1_enable ||_params.pre2_enable){
-						int pre_total = _pressure.pressure_2+_pressure.pressure_1-_pre1_offset-_pre2_offset;
-						_att_sp.thrust_pre = math::constrain((float)(_params.pressure_sp-pre_total)/2000.0f*_params.pressure_p,-0.2f,0.2f);
-						_att_sp.thrust = math::constrain(_att_sp.thrust + _att_sp.thrust_pre,0.0f,1.0f);
-					}
-			   	}
-			}
-#endif/*__PRESSURE_1__*/
+
 
 			math::Matrix<3, 3> R_sp;
 

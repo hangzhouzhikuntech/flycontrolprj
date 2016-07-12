@@ -131,6 +131,9 @@
 #if __DAVID_DISTANCE__
 #include <uORB/topics/distance_sensor.h>
 #endif/*__DAVID_DISTANCE__*/
+#if __PRESSURE_1__
+#include <uORB/topics/pressure.h>
+#endif/*__PRESSURE_1__*/
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -1393,6 +1396,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct distance_sensor_s  distance_sensor_rece;
 	memset(&distance_sensor_rece, 0, sizeof(distance_sensor_rece));
 #endif/*__DAVID_DISTANCE__*/
+#if __PRESSURE_1__
+	int pressure_sub = orb_subscribe(ORB_ID(pressure));
+	struct pressure_s  pressure_rece;
+	memset(&pressure_rece, 0, sizeof(pressure_rece));
+#endif/*__PRESSURE_1__*/
 
 	/* Subscribe to vtol vehicle status topic */
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
@@ -2134,6 +2142,15 @@ int commander_thread_main(int argc, char *argv[])
 		}
 #if __DAVID_DISTANCE__
 		if(armed.armed){
+#if __PRESSURE_1__
+			orb_check(pressure_sub, &updated);
+			if(updated){
+				orb_copy(ORB_ID(pressure), pressure_sub, &pressure_rece);
+				//PX4FLOW_WARNX((nullptr,"pressure_rece over12 %d %d",pressure_rece.overpressure1,pressure_rece.overpressure2));
+			}
+#endif/*__PRESSURE_1__*/
+
+			
 			orb_check(distance_sensor_sub, &updated);
 			if(updated){
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &distance_sensor_rece);
@@ -2142,7 +2159,7 @@ int commander_thread_main(int argc, char *argv[])
 					status.distance_sensor_ok = true;
 				}
 #if __PRESSURE_1__
-				else if((pre1_enable||pre2_enable)&&(sensor_id ==-1)){
+				else if((pre1_enable||pre2_enable)&&!pressure_rece.overpressure1&&!pressure_rece.overpressure2&&(sensor_id ==-1)){
 					//PX4FLOW_WARNX((nullptr,"--aa--presure_distance_sensor_ok is ok"));
 					status.distance_sensor_ok = true;
 				}

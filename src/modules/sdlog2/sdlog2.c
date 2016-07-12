@@ -1982,7 +1982,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.msg_type = LOG_PRES_MSG;
 				log_msg.body.log_PRES.pressure_1 = buf.pressure.pressure_1;
 				log_msg.body.log_PRES.pressure_2 = buf.pressure.pressure_2;
-				log_msg.body.log_PRES.overpressure= buf.pressure.overpressure;
+				log_msg.body.log_PRES.overpressure1= buf.pressure.overpressure1;
+				log_msg.body.log_PRES.overpressure2= buf.pressure.overpressure2;
 				LOGBUFFER_WRITE_AND_COUNT(PRES);
 			}
 #endif/*__PRESSURE__*/

@@ -530,7 +530,8 @@ struct log_CTS_s {
 struct log_PRES_s {
 	int32_t pressure_1;
 	int32_t pressure_2;
-	int8_t overpressure;
+	int8_t overpressure1;
+	int8_t overpressure2;
 };
 #endif/*__PRESSURE__*/
 #if __ALT_CONTROL_TEST__
@@ -632,7 +633,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
 #if __PRESSURE__
-	LOG_FORMAT(PRES, "IIb", "p_1,p_2,o_p"),
+	LOG_FORMAT(PRES, "IIbb", "p_1,p_2,op1,op2"),
 #endif/*__PRESSURE__*/
 #if __ALT_CONTROL_TEST__
 	LOG_FORMAT(TEST, "B", "CT"),

@@ -28,10 +28,8 @@
 #define __DAVID_YAW_FIX__  						(1)
 #define __ATT_PROTECT_FIX__  					(1)
 #define __MANUAL_DZ__  							(1)
-#define __ALT_CONTROL_TEST__  					(1)
 #define __ARMED_FIX__  							(1)
-#define __ARMED_FIX_1__  						(0)
-
+#define __ARMED_FIX_1__  						(1)
 
 #define __DAVID_CHAO_WARING__  					(1)
 #define __DAVID_ARMED_FIX__  					(1)
@@ -44,7 +42,10 @@
 #define __PRESSURE__ 							(1)
 #define __PRESSURE_LB__ 						(1)
 #define __PRESSURE_PARAM__ 						(1)
-#define __PRESSURE_1__ 							(0)
+#define __PRESSURE_1__ 							(1)
+#define __PRESSURE_2__ 							(1)
+#define __ALT_CONTROL_TEST__  					(1)
+
 
 #define __POS_MANAUL__ 							(0)
 #define __BATT_I2C__ 							(0)

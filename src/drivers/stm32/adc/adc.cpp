@@ -143,9 +143,9 @@ private:
 	orb_advert_t		_to_pressure;
 #endif/*__PRESSURE__*/
 #if	__PRESSURE_LB__
-	uint32_t _value_buf_1[LB_N];
-	uint32_t _value_buf_2[LB_N];
-    static uint32_t _filter(uint32_t value,uint32_t *value_buf);
+	int32_t _value_buf_1[LB_N];
+	int32_t _value_buf_2[LB_N];
+    static int32_t _filter(int32_t value,int32_t *value_buf);
 #endif/*__PRESSURE_LB__*/
 
 	orb_advert_t		_to_system_power;
@@ -298,17 +298,17 @@ ADC::ioctl(file *filp, int cmd, unsigned long arg)
 	return -ENOTTY;
 }
 #if	__PRESSURE_LB__
-uint32_t
-ADC::_filter(uint32_t value,uint32_t *value_buf){
+int32_t
+ADC::_filter(int32_t value,int32_t *value_buf){
 
-	uint32_t sum = value;
+	int32_t sum = value;
 
 	for (int i=0;i<LB_N - 1;i++){
 		value_buf[i]=value_buf[i+1];
 		sum += value_buf[i];
 	}
 	value_buf[LB_N-1] = value;
-	return (uint32_t)(sum/(LB_N));
+	return (int32_t)(sum/(LB_N));
 
 }
 
@@ -454,16 +454,30 @@ ADC::update_pressure(void)
 	_pre_t.timestamp = hrt_absolute_time();
 	_pre_t.pressure_1=TOTAL_COUNT-_filter(_samples[7].am_data/SCALE,_value_buf_1);
 	_pre_t.pressure_2=TOTAL_COUNT-_filter(_samples[6].am_data/SCALE,_value_buf_2);
-	if(_pre_t.pressure_1 < 0 ||_pre_t.pressure_2< 0){
-		_pre_t.overpressure = true;
+
+	//_pre_t.pressure_1=_filter(_samples[7].am_data/SCALE,_value_buf_1);//TOTAL_COUNT-
+	//_pre_t.pressure_2=_filter(_samples[6].am_data/SCALE,_value_buf_2);//TOTAL_COUNT-
+
+	if(_pre_t.pressure_1 <= 0 || _pre_t.pressure_1>=4000){
+		_pre_t.overpressure1 = true;
 	}else{
-		_pre_t.overpressure= false;
+		_pre_t.overpressure1= false;
 	}
-//	PX4FLOW_WARNX((nullptr,"filter %d %d overpressure %d",_pre_t.pressure_1,_pre_t.pressure_2,_pre_t.overpressure));
+
+	if(_pre_t.pressure_2<= 0 || _pre_t.pressure_2>=4000){
+		_pre_t.overpressure2 = true;
+	}else{
+		_pre_t.overpressure2= false;
+	}
+	
+	//PX4FLOW_WARNX((nullptr,"filter %d %d overpressure %d %d",_pre_t.pressure_1,_pre_t.pressure_2,_pre_t.overpressure1,_pre_t.overpressure2));
 #else/*__PRESSURE_LB__*/
 	_pre_t.timestamp = hrt_absolute_time();
-	_pre_t.pressure_1 = TOTAL_COUNT-_samples[7].am_data/SCALE;
-	_pre_t.pressure_2 = TOTAL_COUNT-_samples[6].am_data/SCALE;
+	_pre_t.pressure_1 = TOTAL_COUNT-_samples[7].am_data/SCALE;//TOTAL_COUNT-
+	_pre_t.pressure_2 = TOTAL_COUNT-_samples[6].am_data/SCALE;//TOTAL_COUNT-
+
+	//_pre_t.pressure_1 = _samples[7].am_data/SCALE;//TOTAL_COUNT-
+	//_pre_t.pressure_2 = _samples[6].am_data/SCALE;//TOTAL_COUNT-
 	//PX4FLOW_WARNX((nullptr,"_pre_t.pressure_1  %u pressure_2 %u",_pre_t.pressure_1,_pre_t.pressure_2));
 #endif/*__PRESSURE_LB__*/
 

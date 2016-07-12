@@ -407,7 +407,7 @@ PARAM_DEFINE_FLOAT(MPC_SENSOR_LIMIT, 0.36f);
  *
  * @min 0.0
  * @max 10000.0
- * @decimal 2
+ * @decimal 6
  * @group ZHIKUN
 */
 PARAM_DEFINE_FLOAT(PRESSURE_P, 0.0f);
@@ -425,7 +425,7 @@ PARAM_DEFINE_INT32(PRESSURE_SP,0);
  *
  * @min 0.0
  * @max 10000.0
- * @decimal 2
+ * @decimal 6
  * @group ZHIKUN
 */
 PARAM_DEFINE_FLOAT(PROLL_P, 0.0f);
@@ -461,3 +461,14 @@ PARAM_DEFINE_INT32(PRE1_EN, 0);
 */
 PARAM_DEFINE_INT32(PRE2_EN, 0);
 #endif/*__PRESSURE_PARAM__*/
+#if __PRESSURE_2__
+/**
+ * the portion of pressure pd
+ *
+ * @min 0.0
+ * @max 10000.0
+ * @decimal 6
+ * @group ZHIKUN
+*/
+PARAM_DEFINE_FLOAT(PRESSURE_PD, 0.0f);
+#endif/*__PRESSURE_2__*/
