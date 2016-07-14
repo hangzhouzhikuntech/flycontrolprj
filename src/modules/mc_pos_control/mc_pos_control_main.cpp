@@ -842,7 +842,7 @@ MulticopterPositionControl::poll_subscriptions()
 		if(_pressure_init_cnt < PRE_INIT_NUM) {
 			if (PX4_ISFINITE(_pressure.pressure_1 &&_pressure.pressure_2&&_wait_pressure)
 #if __PRESSURE_PARAM__
-			&&(_params.pre1_enable ||_params.pre1_enable)
+			&&(_params.pre1_enable ||_params.pre2_enable)
 #endif/*__PRESSURE_PARAM__*/
 			) {
 				_pre1_offset +=_pressure.pressure_1;

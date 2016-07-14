@@ -452,19 +452,19 @@ ADC::update_pressure(void)
 
 #if	__PRESSURE_LB__
 	_pre_t.timestamp = hrt_absolute_time();
-	_pre_t.pressure_1=TOTAL_COUNT-_filter(_samples[7].am_data/SCALE,_value_buf_1);
-	_pre_t.pressure_2=TOTAL_COUNT-_filter(_samples[6].am_data/SCALE,_value_buf_2);
+	//_pre_t.pressure_1=TOTAL_COUNT-_filter(_samples[7].am_data/SCALE,_value_buf_1);
+	//_pre_t.pressure_2=TOTAL_COUNT-_filter(_samples[6].am_data/SCALE,_value_buf_2);
 
-	//_pre_t.pressure_1=_filter(_samples[7].am_data/SCALE,_value_buf_1);//TOTAL_COUNT-
-	//_pre_t.pressure_2=_filter(_samples[6].am_data/SCALE,_value_buf_2);//TOTAL_COUNT-
+	_pre_t.pressure_1=_filter(_samples[7].am_data/SCALE,_value_buf_1);//TOTAL_COUNT-
+	_pre_t.pressure_2=_filter(_samples[6].am_data/SCALE,_value_buf_2);//TOTAL_COUNT-
 
-	if(_pre_t.pressure_1 <= 0 || _pre_t.pressure_1>=4000){
+	if(_pre_t.pressure_1 <= 0 || _pre_t.pressure_1>=4500){
 		_pre_t.overpressure1 = true;
 	}else{
 		_pre_t.overpressure1= false;
 	}
 
-	if(_pre_t.pressure_2<= 0 || _pre_t.pressure_2>=4000){
+	if(_pre_t.pressure_2<= 0 || _pre_t.pressure_2>=4500){
 		_pre_t.overpressure2 = true;
 	}else{
 		_pre_t.overpressure2= false;
@@ -473,11 +473,11 @@ ADC::update_pressure(void)
 	//PX4FLOW_WARNX((nullptr,"filter %d %d overpressure %d %d",_pre_t.pressure_1,_pre_t.pressure_2,_pre_t.overpressure1,_pre_t.overpressure2));
 #else/*__PRESSURE_LB__*/
 	_pre_t.timestamp = hrt_absolute_time();
-	_pre_t.pressure_1 = TOTAL_COUNT-_samples[7].am_data/SCALE;//TOTAL_COUNT-
-	_pre_t.pressure_2 = TOTAL_COUNT-_samples[6].am_data/SCALE;//TOTAL_COUNT-
+	//_pre_t.pressure_1 = TOTAL_COUNT-_samples[7].am_data/SCALE;//TOTAL_COUNT-
+	//_pre_t.pressure_2 = TOTAL_COUNT-_samples[6].am_data/SCALE;//TOTAL_COUNT-
 
-	//_pre_t.pressure_1 = _samples[7].am_data/SCALE;//TOTAL_COUNT-
-	//_pre_t.pressure_2 = _samples[6].am_data/SCALE;//TOTAL_COUNT-
+	_pre_t.pressure_1 = _samples[7].am_data/SCALE;//TOTAL_COUNT-
+	_pre_t.pressure_2 = _samples[6].am_data/SCALE;//TOTAL_COUNT-
 	//PX4FLOW_WARNX((nullptr,"_pre_t.pressure_1  %u pressure_2 %u",_pre_t.pressure_1,_pre_t.pressure_2));
 #endif/*__PRESSURE_LB__*/
 
