@@ -789,10 +789,12 @@ fi
 if ver hwcmp PX4FMU_V2
 then
 	# Check for flow sensor - as it is a background task, launch it last
-	#px4flow start &
 	mb12xx start &
 	gimbal start &
 	batt_smbus start &
+	
+	usleep 3000000
+	px4flow start &
 fi
 
 # Start USB shell if no microSD present, MAVLink else
@@ -809,4 +811,7 @@ then
 	echo "Exit from nsh"
 	exit
 fi
+
+
+
 unset EXIT_ON_END

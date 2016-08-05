@@ -335,7 +335,7 @@ PARAM_DEFINE_FLOAT(INAV_DISAB_MOCAP, 0);
  * @max 1
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_LIDAR_EST, 0);
+PARAM_DEFINE_INT32(INAV_LIDAR_EST, 0);
 
 /**
  * LIDAR calibration offset

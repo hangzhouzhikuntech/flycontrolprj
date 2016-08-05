@@ -73,6 +73,7 @@
 #include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
+#include "qiaoliang/qiaoliang_define.h"
 
 /* Configuration Constants */
 #define MB12XX_BUS 		PX4_I2C_BUS_EXPANSION
@@ -737,7 +738,10 @@ MB12XX::collect()
 
 	/* publish it, if we are the primary */
 	if (_distance_sensor_topic != nullptr) {
-		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
+#if  __PX4FLOW_KS103_USE__
+#else
+	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
+#endif
 	}
 
 	if (_reports->force(&report)) {

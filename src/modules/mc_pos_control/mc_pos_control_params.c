@@ -440,6 +440,33 @@ PARAM_DEFINE_FLOAT(PROLL_P, 0.0f);
  * @group ZHIKUN
 */
 PARAM_DEFINE_FLOAT(MR_DZ, 0.0f);
+/**
+ * manual_x_dz
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @group ZHIKUN
+*/
+//PARAM_DEFINE_FLOAT(MX_DZ, 0.0f);
+/**
+ * manual_y_dz
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @group ZHIKUN
+*/
+//PARAM_DEFINE_FLOAT(MY_DZ, 0.0f);
+/**
+ * manual_z_dz
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @group ZHIKUN
+*/
+//PARAM_DEFINE_FLOAT(MZ_DZ, 0.0f);
 #endif/*__MANUAL_DZ__*/
 #if __PRESSURE_PARAM__
 /**

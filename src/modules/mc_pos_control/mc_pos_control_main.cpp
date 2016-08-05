@@ -254,6 +254,9 @@ private:
 
 #if	__MANUAL_DZ__
 		param_t manual_r_dz;
+	//	param_t manual_x_dz;
+	//	param_t manual_y_dz;
+	//	param_t manual_z_dz;
 #endif/*__MANUAL_DZ__*/
 
 	}		_params_handles;		/**< handles for interesting parameters */
@@ -295,6 +298,9 @@ private:
 #endif/*__PRESSURE_1__*/
 #if	__MANUAL_DZ__
 		float manual_r_dz;
+		//float manual_x_dz;
+		//float manual_y_dz;
+		//float manual_z_dz;
 #endif/*__MANUAL_DZ__*/
 
 		math::Vector<3> pos_p;
@@ -586,6 +592,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 #endif/*__PRESSURE_1__*/
 #if	__MANUAL_DZ__
 	_params_handles.manual_r_dz = param_find("MR_DZ");
+	//_params_handles.manual_x_dz = param_find("MX_DZ");
+//	_params_handles.manual_y_dz = param_find("MY_DZ");
+//	_params_handles.manual_z_dz = param_find("MZ_DZ");
 #endif/*__MANUAL_DZ__*/
 
 #if __PRESSURE_PARAM__
@@ -707,6 +716,9 @@ MulticopterPositionControl::parameters_update(bool force)
 #endif/*__PRESSURE_1__*/
 #if	__MANUAL_DZ__
 		param_get(_params_handles.manual_r_dz, &_params.manual_r_dz);
+	//	param_get(_params_handles.manual_x_dz, &_params.manual_x_dz);
+	//	param_get(_params_handles.manual_y_dz, &_params.manual_y_dz);
+	//	param_get(_params_handles.manual_z_dz, &_params.manual_z_dz);
 #endif/*__MANUAL_DZ__*/
 
 #if __PRESSURE_PARAM__
@@ -783,6 +795,7 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 	}
+	
 #if __ARMED_FIX_1__
 		if(_lock_count>200){
 			//PX4FLOW_WARNX((nullptr,"-aa-_lock_count %d",_lock_count));
@@ -791,6 +804,9 @@ MulticopterPositionControl::poll_subscriptions()
 				orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 #if	__MANUAL_DZ__
 			_manual.r = scale_control(_manual.r, 1.0f,_params.manual_r_dz,0.0f);
+		//	_manual.x = scale_control(_manual.x, 1.0f,_params.manual_x_dz,0.0f);
+		//	_manual.y = scale_control(_manual.y, 1.0f,_params.manual_y_dz,0.0f);
+		//	_manual.z = (scale_control(_manual.z-0.5f, 0.5f,_params.manual_z_dz,0.0f)+1.0f)/2;
 #endif/*__MANUAL_DZ__*/
 				}
 		}else{
@@ -803,7 +819,12 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 #if	__MANUAL_DZ__
-	_manual.r = scale_control(_manual.r, 1.0f,_params.manual_r_dz,0.0f);
+		_manual.r = scale_control(_manual.r, 1.0f,_params.manual_r_dz,0.0f);
+		//_manual.x = scale_control(_manual.x, 1.0f,_params.manual_x_dz,0.0f);
+		//_manual.y = scale_control(_manual.y, 1.0f,_params.manual_y_dz,0.0f);
+		//_manual.z = (scale_control(_manual.z-0.5f, 0.5f,_params.manual_z_dz,0.0f)+1.0f)/2;
+		//PX4FLOW_WARNX((nullptr,"_manual.rxyz %.2f %.2f %.2f %.2f",(double)_manual.r,(double)_manual.x,(double)_manual.y,(double)_manual.z));
+
 #endif/*__MANUAL_DZ__*/
 	}
 #endif/*__ARMED_FIX_1__*/

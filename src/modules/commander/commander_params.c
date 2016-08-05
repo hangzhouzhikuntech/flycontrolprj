@@ -372,6 +372,17 @@ PARAM_DEFINE_INT32(SONAR_ID_B, -1);
  */
 PARAM_DEFINE_INT32(SONAR_ID_D, -1);
 /**
+ * to count_warning
+ *
+ * the count wanrning
+ *
+ * @group ZHIKUN
+ * @min 0
+ * @max 65535
+ */
+PARAM_DEFINE_INT32(COUNT_WARN, 255);
+
+/**
  * ultra_sonar warning distance
  *
  * ultra_sonar warning distance

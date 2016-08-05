@@ -1085,6 +1085,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_sonar_id_b= param_find("SONAR_ID_B");
 	param_t _param_sonar_id_d= param_find("SONAR_ID_D");
 	param_t _param_warn_dis = param_find("WARN_DIS");
+	param_t _param_count_warn = param_find("COUNT_WARN");
 #endif/*__DAVID_CHAO_WARING__*/
 #if __POS_MANAUL__
 	param_t _param_manual_pos = param_find("MANUAL_POS");
@@ -1478,6 +1479,7 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t sonar_id_b;
 	int32_t sonar_id_d;
 	float warn_dis;
+	int32_t count_warn;
 #endif/*__DAVID_CHAO_WARING__*/
 #if __POS_MANAUL__
 	float manual_pos;
@@ -1487,6 +1489,11 @@ int commander_thread_main(int argc, char *argv[])
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
 	bool failsafe_old = false;
+#if __DAVID_CHAO_WARING__
+	int count_f=0;
+	int count_b=0;
+	int count_d=0;
+#endif/*__DAVID_CHAO_WARING__*/
 
 	/* initialize low priority thread */
 	pthread_attr_t commander_low_prio_attr;
@@ -1586,6 +1593,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_sonar_id_b, &sonar_id_b);
 			param_get(_param_sonar_id_d, &sonar_id_d);
 			param_get(_param_warn_dis, &warn_dis);
+			param_get(_param_count_warn, &count_warn);
 #endif/*__DAVID_CHAO_WARING__*/
 #if __POS_MANAUL__
 			param_get(_param_manual_pos, &manual_pos);
@@ -1613,6 +1621,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (updated) {
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
 		}
+		
 #if __POS_MANAUL__
 		if(fabsf(sp_man.x)>manual_pos||fabsf(sp_man.y)>manual_pos){
 			status.manual_pos = true;
@@ -1620,6 +1629,9 @@ int commander_thread_main(int argc, char *argv[])
 			status.manual_pos = false;
 		}
 #endif/*__POS_MANAUL__*/
+
+
+
 		orb_check(offboard_control_mode_sub, &updated);
 
 		if (updated) {
@@ -2142,6 +2154,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 #if __DAVID_DISTANCE__
 		if(armed.armed){
+		//if(1){
 #if __PRESSURE_1__
 			orb_check(pressure_sub, &updated);
 			if(updated){
@@ -2149,8 +2162,6 @@ int commander_thread_main(int argc, char *argv[])
 				//PX4FLOW_WARNX((nullptr,"pressure_rece over12 %d %d",pressure_rece.overpressure1,pressure_rece.overpressure2));
 			}
 #endif/*__PRESSURE_1__*/
-
-			
 			orb_check(distance_sensor_sub, &updated);
 			if(updated){
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &distance_sensor_rece);
@@ -2167,28 +2178,34 @@ int commander_thread_main(int argc, char *argv[])
 				else{
 					status.distance_sensor_ok = false;
 				}
+
+//				PX4FLOW_WARNX((nullptr,"distance_sensor_rece.id %d distance_sensor_rece %.2f",distance_sensor_rece.id,(double)distance_sensor_rece.current_distance));
 #if __DAVID_CHAO_WARING__
-				if(distance_sensor_rece.id == sonar_id_f){
-					if(distance_sensor_rece.current_distance < warn_dis){
-						mavlink_log_critical(mavlink_fd, "#warning,forward distance is too close");
-					}
+				if((distance_sensor_rece.id == sonar_id_f)&&(distance_sensor_rece.current_distance < warn_dis)){
+						count_f++;
+						if(count_f>count_warn){
+							mavlink_log_critical(mavlink_fd, "#forward close");
+							count_f = 0;
+							}
 				}
-				if(distance_sensor_rece.id == sonar_id_b){
-					if(distance_sensor_rece.current_distance < warn_dis){
-						mavlink_log_critical(mavlink_fd, "#warning,backward distance is too close!!");
-					}
+				if((distance_sensor_rece.id == sonar_id_b)&&(distance_sensor_rece.current_distance < warn_dis)){
+						count_b++;
+						if(count_b>count_warn){
+							mavlink_log_critical(mavlink_fd, "#backward close!!");
+							count_b = 0;
+							}
 				}
-				if(distance_sensor_rece.id == sonar_id_d){
-					
-					if(distance_sensor_rece.current_distance < warn_dis){
-						mavlink_log_critical(mavlink_fd, "#warning,down distance is too close!!");
-					}
+				if((distance_sensor_rece.id == sonar_id_d)&&(distance_sensor_rece.current_distance < warn_dis)){
+						count_d++;
+						if(count_d>count_warn){
+							mavlink_log_critical(mavlink_fd, "#down close");
+							count_d = 0;
+						}
 				}
 #endif/*__DAVID_CHAO_WARING__*/
 			}
 #if __PRESSURE_1__
 				else if((pre1_enable||pre2_enable)&&(sensor_id ==-1)){					
-					//PX4FLOW_WARNX((nullptr,"--bb--presure_distance_sensor_ok is ok"));
 					status.distance_sensor_ok = true;
 					
 				}
@@ -2196,6 +2213,11 @@ int commander_thread_main(int argc, char *argv[])
 
 		}else{
 			status.distance_sensor_ok = false;
+#if __DAVID_CHAO_WARING__
+				count_f=0;
+				count_b=0;
+				count_d=0;	
+#endif/*__DAVID_CHAO_WARING__*/		
 		}
 	
 #endif/*__DAVID_DISTANCE__*/

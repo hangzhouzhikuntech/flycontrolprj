@@ -912,7 +912,7 @@ PX4FMU::update_gimbal_data(int data_type)
         {
             (*data_pwm) = 1500 + (*data_config)*1000;
             _adjust_status = false;
-            PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f",(double)(*data_pwm)));
+//            PX4FLOW_WARNX((nullptr,"_pwm_limited %.2f",(double)(*data_pwm)));
         }
         else
         {

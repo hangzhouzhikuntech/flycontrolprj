@@ -21,8 +21,6 @@
 #endif/*__MAVLINK_LOG_FILE__*/
 
 #define  __DEBUG__								(0)
-#define __DAVID_DISTANCE__						(1)
-#define __DAVID_DISTANCE_FIX__					(1)
 #define __DAVID_MANUAL__						(1)
 #define __DAVID_NAV_LOG__  						(1)
 #define __DAVID_YAW_FIX__  						(1)
@@ -31,6 +29,8 @@
 #define __ARMED_FIX__  							(1)
 #define __ARMED_FIX_1__  						(1)
 
+#define __DAVID_DISTANCE__						(1)
+#define __DAVID_DISTANCE_FIX__					(1)
 #define __DAVID_CHAO_WARING__  					(1)
 #define __DAVID_ARMED_FIX__  					(1)
 
@@ -39,15 +39,16 @@
 #define __MC_POS_FIX__ 							(1)
 #define __LAND_FIX__ 							(1)
 
-#define __PRESSURE__ 							(1)
-#define __PRESSURE_LB__ 						(1)
-#define __PRESSURE_PARAM__ 						(1)
-#define __PRESSURE_1__ 							(1)
-#define __PRESSURE_2__ 							(1)
-#define __ALT_CONTROL_TEST__  					(1)
+#define __PRESSURE__ 							(0)
+#define __PRESSURE_LB__ 						(0)
+#define __PRESSURE_PARAM__ 						(0)
+#define __PRESSURE_1__ 							(0)
+#define __PRESSURE_2__ 							(0)
+#define __ALT_CONTROL_TEST__  					(0)
 
+#define __PX4FLOW_KS103_USE__					(0)
 
-#define __POS_MANAUL__ 							(0)
+#define __POS_MANAUL__ 							(1)
 #define __BATT_I2C__ 							(0)
 
 #define __RC_LOSS_TEST__ 						(0)

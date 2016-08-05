@@ -77,6 +77,8 @@
 
 #include <board_config.h>
 
+#include "qiaoliang/qiaoliang_define.h"
+
 /* Configuration Constants */
 #define I2C_FLOW_ADDRESS 		0x42	///< 7-bit address. 8-bit address is 0x84, range 0x42 - 0x49
 
@@ -87,7 +89,7 @@
 #define PX4FLOW_I2C_MAX_BUS_SPEED	400000	///< 400 KHz maximum speed
 
 #define PX4FLOW_MAX_DISTANCE 5.0f
-#define PX4FLOW_MIN_DISTANCE 0.3f
+#define PX4FLOW_MIN_DISTANCE 0.25f
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -243,9 +245,12 @@ PX4FLOW::init()
 
 	/* get a publish handle on the range finder topic */
 	struct distance_sensor_s ds_report = {};
-
+#if __PX4FLOW_KS103_USE__
+	_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor),&ds_report);
+#else/*__PX4FLOW_KS103_USE__*/
 	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 				 &_orb_class_instance, ORB_PRIO_HIGH);
+#endif/*__PX4FLOW_KS103_USE__*/	
 
 	if (_distance_sensor_topic == nullptr) {
 		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
